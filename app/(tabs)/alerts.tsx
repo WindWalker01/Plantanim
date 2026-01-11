@@ -1,10 +1,9 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 
 import ParallaxScrollView from "@/components/parallax-scroll-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 
-import ModalScreen from "../modal";
-export default function TabTwoScreen() {
+export default function AlertsScreen() {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#D0D0D0", dark: "#353636" }}
@@ -16,11 +15,7 @@ export default function TabTwoScreen() {
           style={styles.headerImage}
         />
       }
-    >
-      <View>
-        <ModalScreen />
-      </View>
-    </ParallaxScrollView>
+    ></ParallaxScrollView>
   );
 }
 
