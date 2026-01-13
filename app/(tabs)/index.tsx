@@ -1,10 +1,12 @@
 import HeroCard from "@/components/home/hero";
+import HourlyForecast from "@/components/hourly-forecast";
 import RiskLevel from "@/components/home/risk-level";
 import TopBar from "@/components/home/top-bar";
-import WeatherCard from "@/components/weather-card";
+import SevenDayOutlook from "@/components/seven-day-outlook";
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import {
   Pressable,
   ScrollView,
@@ -18,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function HomeScreen() {
   const scheme = useColorScheme() ?? "light";
   const { colors } = useAppTheme();
+  const router = useRouter();
 
   const styles = createStyles(colors, scheme);
 
@@ -46,33 +49,21 @@ export default function HomeScreen() {
         </View>
 
         {/* CTA */}
-        <Pressable style={styles.ctaButton}>
+        <Pressable
+          style={styles.ctaButton}
+          onPress={() => router.push("/farming-suggestions")}
+        >
           <MaterialIcons name="agriculture" size={22} color="#fff" />
           <Text style={styles.ctaText}>See Farming Suggestions</Text>
         </Pressable>
 
         <Text style={styles.sectionTitle}>Hourly Forecast</Text>
 
-        <View style={styles.forecastContainer}></View>
-
-        <ScrollView
-          horizontal={true}
-          showsHorizontalScrollIndicator={false}
-          pagingEnabled={false}
-          style={styles.forecastContainer}
-        >
-          <WeatherCard />
-          <WeatherCard />
-          <WeatherCard />
-          <WeatherCard />
-          <WeatherCard />
-          <WeatherCard />
-          <WeatherCard />
-        </ScrollView>
+        <HourlyForecast />
 
         <Text style={styles.sectionTitle}>7-Day Outlook</Text>
 
-        <View></View>
+        <SevenDayOutlook />
       </ScrollView>
     </SafeAreaView>
   );
@@ -141,9 +132,4 @@ const createStyles = (colors: Theme, scheme: any) =>
       fontWeight: "800",
     },
 
-    forecastContainer: {
-      display: "flex",
-      flexDirection: "row",
-      gap: 4,
-    },
   });

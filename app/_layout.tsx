@@ -10,7 +10,7 @@ import "react-native-reanimated";
 import { useColorScheme } from "react-native";
 
 export const unstable_settings = {
-  anchor: "(tabs)",
+  initialRouteName: "index",
 };
 
 export default function RootLayout() {
@@ -19,7 +19,27 @@ export default function RootLayout() {
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
+        <Stack.Screen
+          name="index"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="onboarding"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="set-location"
+          options={{ headerShown: false, presentation: "card" }}
+        />
+        <Stack.Screen
+          name="personalization"
+          options={{ headerShown: false, presentation: "card" }}
+        />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="farming-suggestions"
+          options={{ headerShown: false, presentation: "card" }}
+        />
         <Stack.Screen
           name="modal"
           options={{ presentation: "modal", title: "Modal" }}

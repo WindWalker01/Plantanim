@@ -1,50 +1,176 @@
-# Welcome to your Expo app 👋
+# 🌱 Project Plantanim
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Overview
 
-## Get started
+**Project Plantanim** is a mobile application designed to support small-scale farmers in **Abucay, Bataan, Philippines** through **localized weather forecasting** and **farming planning assistance**. The project responds to the increasing vulnerability of agriculture to extreme weather events such as typhoons, floods, and droughts—particularly in Central Luzon, the country’s primary rice-producing region.
 
-1. Install dependencies
+Unlike existing agricultural apps in the Philippines that focus on isolated farming tasks, Plantanim aims to provide an **integrated, farmer-centered solution** that combines weather intelligence with actionable planning suggestions.
 
-   ```bash
-   npm install
-   ```
+---
 
-2. Start the app
+## Problem Context
 
-   ```bash
-   npx expo start
-   ```
+Farmers in Central Luzon experience recurring crop losses due to:
 
-In the output, you'll find options to open the app in a
+* Unpredictable weather patterns
+* Limited access to localized and timely forecasts
+* Lack of integrated digital tools for planning farming activities
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+Many existing solutions:
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+* Are not localized
+* Require high data usage
+* Assume high digital literacy
+* Do not integrate weather forecasts directly into farming decisions
 
-## Get a fresh project
+**Project Plantanim** is designed to address these gaps.
 
-When you're ready, run:
+---
 
-```bash
-npm run reset-project
-```
+## Objectives
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+* Provide **localized and understandable weather forecasts** for farmers
+* Offer **practical farming suggestions** aligned with upcoming weather conditions
+* Reduce weather-related crop losses through proactive planning
+* Ensure high **acceptability and usability** among farmers with varied digital literacy
 
-## Learn more
+---
 
-To learn more about developing your project with Expo, look at the following resources:
+## Target Users
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+* Small-scale farmers in **Abucay, Bataan**
+* Primarily rice farmers, with support for other crops (corn, vegetables, root crops)
+* Users with:
 
-## Join the community
+  * Smartphones
+  * Limited or unstable internet access
+  * Minimal experience with advanced digital tools
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Core Features
+
+* 🌦 **Localized Weather Forecasting**
+
+  * Short-term and multi-day outlooks
+  * Focus on rainfall, temperature, and extreme weather alerts
+
+* 🌾 **Farming Planning Suggestions**
+
+  * Weather-based recommendations (e.g., planting delays, harvest timing)
+  * Designed to align with local farming cycles
+
+* 📱 **Farmer-Friendly Interface**
+
+  * Simple layouts
+  * Minimal text and cognitive load
+  * Clear visual cues
+
+* 📶 **Low Data & Offline Considerations**
+
+  * Optimized for low-bandwidth environments
+  * Designed with rural connectivity constraints in mind
+
+---
+
+## Theoretical Foundations
+
+Project Plantanim is grounded in established technology adoption and acceptability models:
+
+### 1. Technology Acceptance Model (TAM)
+
+* **Perceived Usefulness (PU)** – Does the app genuinely help farmers?
+* **Perceived Ease of Use (PEOU)** – Is it easy to learn and operate?
+
+### 2. Theoretical Framework of Acceptability (TFA)
+
+* Affective Attitude
+* Burden (time, cost, effort)
+* Ethicality (data privacy, trust)
+* Intervention/System Coherence
+* Opportunity Costs
+* Perceived Effectiveness
+* Self-Efficacy
+
+### 3. Diffusion of Innovations (DOI)
+
+* Relative Advantage
+* Compatibility with existing practices
+* Trialability and observability
+
+These frameworks guide both **app design** and **research evaluation**.
+
+---
+
+## Research Component
+
+Project Plantanim is also an academic study that evaluates the **acceptability of the application among local farmers**.
+
+* Research Design: Descriptive and comparative
+* Data Collection:
+
+  * Survey questionnaires
+  * Focused interviews
+* Analysis:
+
+  * Descriptive statistics (mean, SD, frequency)
+  * Inferential tests (ANOVA, Independent Samples t-Test)
+
+The findings will inform future app improvements and policy recommendations for LGUs.
+
+---
+
+## Technology Stack (Planned / In Use)
+
+* **Frontend:** React Native (Expo)
+* **Platform:** Android-first
+* **APIs:** Weather data APIs (to be selected)
+* **Design Approach:** Mobile-first, accessibility-focused
+
+---
+
+## Design Principles
+
+* Simplicity over complexity
+* Clear language over technical jargon
+* Practical value over feature bloat
+* Respect for farmers’ time, data, and resources
+
+---
+
+## Non-Goals
+
+Project Plantanim is **not** intended to:
+
+* Replace agricultural extension workers
+* Act as a full farm management or accounting system
+* Serve as a marketplace or trading platform
+
+---
+
+## Future Directions
+
+* Integration with PAGASA advisories
+* LGU and extension office collaboration
+* Expanded crop support
+* Training modules to improve digital self-efficacy
+
+---
+
+## Project Status
+
+🚧 **In Development / Research Phase**
+
+This project is currently being developed alongside its academic evaluation.
+
+---
+
+## Authors
+
+Developed as part of an undergraduate thesis at **Bataan Peninsula State University**.
+
+---
+
+## License
+
+To be determined.
