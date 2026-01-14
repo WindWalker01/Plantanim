@@ -1,3 +1,6 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Image,
@@ -8,9 +11,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
@@ -22,7 +22,7 @@ type Crop = {
   id: string;
   name: string;
   subtitle: string;
-  image: string;
+  image: any;
   selected: boolean;
 };
 
@@ -31,49 +31,49 @@ const CROPS: Crop[] = [
     id: "rice",
     name: "Rice",
     subtitle: "Selected",
-    image: "https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=400&q=80",
+    image: require("../assets/images/rice.jpg"),
     selected: true,
   },
   {
     id: "corn",
     name: "Corn",
     subtitle: "Maize",
-    image: "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=400&q=80",
+    image: require("../assets/images/corn.jpg"),
     selected: false,
   },
   {
     id: "vegetables",
     name: "Vegetables",
     subtitle: "Selected",
-    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=400&q=80",
+    image: require("../assets/images/vegetables.jpg"),
     selected: true,
   },
   {
     id: "root-crops",
     name: "Root crops",
     subtitle: "Potato/Cassava",
-    image: "https://images.unsplash.com/photo-1518977822534-7049a61ee0c2?auto=format&fit=crop&w=400&q=80",
+    image: require("../assets/images/root_crops.jpg"),
     selected: false,
   },
   {
     id: "mango",
     name: "Mango",
     subtitle: "Fruit trees",
-    image: "https://images.unsplash.com/photo-1605027990121-28a5c2e1c0b5?auto=format&fit=crop&w=400&q=80",
+    image: require("../assets/images/mango_tree.jpg"),
     selected: false,
   },
   {
     id: "banana",
     name: "Banana",
     subtitle: "Banana bunch",
-    image: "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?auto=format&fit=crop&w=400&q=80",
+    image: require("../assets/images/banana_tree.jpg"),
     selected: false,
   },
   {
     id: "coconut",
     name: "Coconut",
     subtitle: "Palm products",
-    image: "https://images.unsplash.com/photo-1605027990121-28a5c2e1c0b5?auto=format&fit=crop&w=400&q=80",
+    image: require("../assets/images/coconut_tree.jpg"),
     selected: false,
   },
 ];
@@ -121,7 +121,7 @@ export default function PersonalizationScreen() {
           return {
             ...crop,
             selected: newSelected,
-            subtitle: newSelected ? "Selected" : (originalCrop?.subtitle || ""),
+            subtitle: newSelected ? "Selected" : originalCrop?.subtitle || "",
           };
         }
         return crop;
@@ -134,10 +134,12 @@ export default function PersonalizationScreen() {
       // Save selected crops to local storage
       const selectedCrops = crops.filter((crop) => crop.selected);
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(selectedCrops));
-      
+
       // Check if we came from settings (check if setup was already complete)
-      const setupComplete = await AsyncStorage.getItem("@plantanim:setup_complete");
-      
+      const setupComplete = await AsyncStorage.getItem(
+        "@plantanim:setup_complete"
+      );
+
       if (setupComplete === "true") {
         // User came from settings, go back to settings
         router.back();
@@ -149,7 +151,9 @@ export default function PersonalizationScreen() {
     } catch (error) {
       console.error("Error saving crops:", error);
       // Still navigate even if save fails
-      const setupComplete = await AsyncStorage.getItem("@plantanim:setup_complete");
+      const setupComplete = await AsyncStorage.getItem(
+        "@plantanim:setup_complete"
+      );
       if (setupComplete === "true") {
         router.back();
       } else {
@@ -168,10 +172,7 @@ export default function PersonalizationScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={styles.screenTitle}>{t("personalization.title")}</Text>
@@ -180,7 +181,9 @@ export default function PersonalizationScreen() {
 
         {/* Main Content */}
         <View style={styles.content}>
-          <Text style={styles.mainQuestion}>{t("personalization.question")}</Text>
+          <Text style={styles.mainQuestion}>
+            {t("personalization.question")}
+          </Text>
           <Text style={styles.instruction}>
             {t("personalization.instruction")}
           </Text>
@@ -198,7 +201,7 @@ export default function PersonalizationScreen() {
               >
                 <View style={styles.cropImageContainer}>
                   <Image
-                    source={{ uri: crop.image }}
+                    source={crop.image}
                     style={styles.cropImage}
                     resizeMode="cover"
                   />
@@ -218,7 +221,9 @@ export default function PersonalizationScreen() {
                       crop.selected && styles.cropSubtitleSelected,
                     ]}
                   >
-                    {crop.selected ? t("personalization.selected") : crop.subtitle}
+                    {crop.selected
+                      ? t("personalization.selected")
+                      : crop.subtitle}
                   </Text>
                 </View>
               </Pressable>
@@ -229,11 +234,10 @@ export default function PersonalizationScreen() {
 
       {/* Finish Button */}
       <View style={styles.footer}>
-        <Pressable
-          style={styles.finishButton}
-          onPress={handleFinish}
-        >
-          <Text style={styles.finishButtonText}>{t("personalization.finish")}</Text>
+        <Pressable style={styles.finishButton} onPress={handleFinish}>
+          <Text style={styles.finishButtonText}>
+            {t("personalization.finish")}
+          </Text>
         </Pressable>
       </View>
     </SafeAreaView>

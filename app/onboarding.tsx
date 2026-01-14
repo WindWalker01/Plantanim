@@ -1,17 +1,28 @@
-import React, { useMemo, useState } from "react";
-import {
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useMemo, useState } from "react";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+
+type OnboardingGraphic =
+  | "onboarding_stay_ahead"
+  | "onboarding_plan"
+  | "onboarding_simple_easy";
+
+const onboardingImages: Record<OnboardingGraphic, any> = {
+  onboarding_stay_ahead: require("../assets/images/onboarding/onboarding_stay_ahead.png"),
+  onboarding_plan: require("../assets/images/onboarding/onboarding_plan.png"),
+  onboarding_simple_easy: require("../assets/images/onboarding/onboarding_simple_easy.png"),
+};
+
+type OnboardingPage = {
+  title: string;
+  description: string;
+  graphic: OnboardingGraphic;
+};
 
 export default function OnboardingScreen() {
   const { colors } = useAppTheme();
@@ -20,13 +31,25 @@ export default function OnboardingScreen() {
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const pages = [
+  const pages: OnboardingPage[] = [
     {
       title: "Stay Ahead of the Storm",
-      description: "We provide localized alerts to protect your crops from typhoons and heavy rain.",
-      graphic: "storm",
+      description:
+        "We provide localized alerts to protect your crops from typhoons and heavy rain.",
+      graphic: "onboarding_stay_ahead",
     },
-    // Add more pages here if needed
+    {
+      title: "Plan Your Farming",
+      description:
+        "Get weather-based suggestions for planting and harvesting your crops at the right time.",
+      graphic: "onboarding_plan",
+    },
+    {
+      title: "Simple and Easy",
+      description:
+        "Our app is designed for farmers like you - easy to use, even with limited internet.",
+      graphic: "onboarding_simple_easy",
+    },
   ];
 
   const handleNext = () => {
@@ -51,27 +74,10 @@ export default function OnboardingScreen() {
 
         {/* Graphic */}
         <View style={styles.graphicContainer}>
-          <View style={styles.stormCloud}>
-            {/* Cloud shapes */}
-            <View style={[styles.cloudPart, styles.cloudPart1]} />
-            <View style={[styles.cloudPart, styles.cloudPart2]} />
-            <View style={[styles.cloudPart, styles.cloudPart3]} />
-            <View style={[styles.cloudPart, styles.cloudPart4]} />
-            
-            {/* Lightning bolt */}
-            <View style={styles.lightningContainer}>
-              <View style={styles.lightningBolt} />
-            </View>
-          </View>
-          
-          {/* Raindrops */}
-          <View style={styles.rainContainer}>
-            <View style={[styles.raindrop, styles.raindrop1]} />
-            <View style={[styles.raindrop, styles.raindrop2]} />
-            <View style={[styles.raindrop, styles.raindrop3]} />
-            <View style={[styles.raindrop, styles.raindrop4]} />
-            <View style={[styles.raindrop, styles.raindrop5]} />
-          </View>
+          <Image
+            source={onboardingImages[pages[currentPage].graphic]}
+            style={styles.onboardingImage}
+          />
         </View>
 
         {/* Text Content */}
@@ -137,86 +143,10 @@ const createStyles = (theme: Theme) =>
       position: "relative",
       overflow: "hidden",
     },
-    stormCloud: {
-      width: 200,
-      height: 150,
-      position: "relative",
-      alignItems: "center",
-      justifyContent: "center",
-    },
-    cloudPart: {
-      position: "absolute",
-      backgroundColor: "#4a5568",
-      borderRadius: 50,
-    },
-    cloudPart1: {
-      width: 80,
-      height: 80,
-      top: 20,
-      left: 20,
-    },
-    cloudPart2: {
-      width: 100,
-      height: 100,
-      top: 10,
-      left: 50,
-    },
-    cloudPart3: {
-      width: 90,
-      height: 90,
-      top: 30,
-      left: 90,
-    },
-    cloudPart4: {
-      width: 70,
-      height: 70,
-      top: 40,
-      left: 120,
-    },
-    lightningContainer: {
-      position: "absolute",
-      top: 60,
-      left: 90,
-      zIndex: 10,
-    },
-    lightningBolt: {
-      width: 20,
-      height: 60,
-      backgroundColor: "#fbbf24",
-      transform: [{ rotate: "15deg" }, { skewX: "-20deg" }],
-    },
-    rainContainer: {
-      position: "absolute",
-      bottom: 20,
-      width: "100%",
-      height: 100,
-    },
-    raindrop: {
-      position: "absolute",
-      width: 4,
-      height: 20,
-      backgroundColor: "#1e40af",
-      borderRadius: 2,
-    },
-    raindrop1: {
-      left: "20%",
-      top: 10,
-    },
-    raindrop2: {
-      left: "35%",
-      top: 20,
-    },
-    raindrop3: {
-      left: "50%",
-      top: 15,
-    },
-    raindrop4: {
-      left: "65%",
-      top: 25,
-    },
-    raindrop5: {
-      left: "80%",
-      top: 18,
+    onboardingImage: {
+      width: 350,
+      height: 350,
+      resizeMode: "contain",
     },
     textContainer: {
       alignItems: "center",

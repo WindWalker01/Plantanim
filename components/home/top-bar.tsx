@@ -1,5 +1,5 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 import { Fonts, Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
@@ -19,11 +19,6 @@ export default function TopBar() {
           <Text style={styles.locationValue}>Central Luzon, PH</Text>
         </View>
       </View>
-
-      <Pressable style={styles.notificationBtn}>
-        <MaterialIcons name="notifications" size={22} color={colors.icon} />
-        <View style={styles.notificationDot} />
-      </Pressable>
     </View>
   );
 }

@@ -134,13 +134,15 @@ export const translations: Record<Language, Translations> = {
     "settings.notifications": "Notifications",
     "settings.language": "Language",
     "settings.farmer.id": "Farmer ID:",
-    "settings.version": "Plantanim v2.4.1 (2024)",
+    "settings.version": "Plantanim Alpha Version (2026)",
     "language.english": "English (US)",
     "language.filipino": "Filipino",
     "home.location.current": "Current Location",
     "home.what.this.means": "What this means for your farm",
-    "home.advice.rain": "Rain chance today is {{percent}}%. Plan fertilizer and field work around heavy showers.",
-    "home.advice.no.data": "We'll tailor farming advice as soon as the latest rain forecast is available for your farm.",
+    "home.advice.rain":
+      "Rain chance today is {{percent}}%. Plan fertilizer and field work around heavy showers.",
+    "home.advice.no.data":
+      "We'll tailor farming advice as soon as the latest rain forecast is available for your farm.",
     "home.see.suggestions": "See Farming Suggestions",
     "home.hourly.forecast": "Hourly Forecast",
     "home.seven.day.outlook": "7-Day Outlook",
@@ -158,11 +160,13 @@ export const translations: Record<Language, Translations> = {
     "alerts.completed": "Completed",
     "alerts.retry": "Retry",
     "alerts.expo.warning.title": "Notifications Limited in Expo Go",
-    "alerts.expo.warning.body": "Push notifications work fully in standalone builds only. In Expo Go, you'll see alerts here but may not receive push notifications.",
+    "alerts.expo.warning.body":
+      "Push notifications work fully in standalone builds only. In Expo Go, you'll see alerts here but may not receive push notifications.",
     "alerts.stats.scheduled": "Scheduled",
     "alerts.stats.today": "Today",
     "alerts.stats.week": "This Week",
-    "alerts.hint": "Enable notifications to receive timely alerts for your crops and weather conditions.",
+    "alerts.hint":
+      "Enable notifications to receive timely alerts for your crops and weather conditions.",
     "calendar.title": "Farming Calendar",
     "calendar.safe": "Safe",
     "calendar.caution": "Caution",
@@ -172,7 +176,8 @@ export const translations: Record<Language, Translations> = {
     "calendar.skip": "Skip",
     "calendar.tasks.for": "Tasks for",
     "calendar.typhoon.signal": "Typhoon Signal #1",
-    "calendar.select.crops": "Select crops and set planting dates to see daily tasks",
+    "calendar.select.crops":
+      "Select crops and set planting dates to see daily tasks",
     "calendar.create.task": "Create New Task",
     "calendar.task.title": "Task Title",
     "calendar.time": "Time",
@@ -199,15 +204,18 @@ export const translations: Record<Language, Translations> = {
     "location.select.municipality": "Select Municipality",
     "location.select.barangay": "Select Barangay",
     "location.permission.title": "Location Permission",
-    "location.permission.message": "Permission is required to auto-detect your location.",
+    "location.permission.message":
+      "Permission is required to auto-detect your location.",
     "location.auto.detect.failed": "Auto-detect failed",
     "personalization.title": "Personalization",
     "personalization.question": "What are you growing?",
-    "personalization.instruction": "Select all that apply to get personalized weather alerts for your crops.",
+    "personalization.instruction":
+      "Select all that apply to get personalized weather alerts for your crops.",
     "personalization.selected": "Selected",
     "personalization.finish": "Finish",
     "planting.title": "Set Planting Dates",
-    "planting.info": "Set planting dates for your crops to generate daily farming tasks automatically.",
+    "planting.info":
+      "Set planting dates for your crops to generate daily farming tasks automatically.",
     "planting.no.crops": "No Crops Selected",
     "planting.no.crops.desc": "Please select crops in Personalization first.",
     "planting.duration": "Duration: {{days}} days",
@@ -240,8 +248,10 @@ export const translations: Record<Language, Translations> = {
     "language.filipino": "Filipino",
     "home.location.current": "Kasalukuyang Lokasyon",
     "home.what.this.means": "Ano ang ibig sabihin nito para sa inyong bukid",
-    "home.advice.rain": "Ang tsansa ng ulan ngayon ay {{percent}}%. Planuhin ang pagpapataba at gawaing bukid na malayo sa malakas na ulan.",
-    "home.advice.no.data": "Makakapagbigay kami ng payo sa pagsasaka kapag may available na na pinakabagong forecast ng ulan para sa inyong bukid.",
+    "home.advice.rain":
+      "Ang tsansa ng ulan ngayon ay {{percent}}%. Planuhin ang pagpapataba at gawaing bukid na malayo sa malakas na ulan.",
+    "home.advice.no.data":
+      "Makakapagbigay kami ng payo sa pagsasaka kapag may available na na pinakabagong forecast ng ulan para sa inyong bukid.",
     "home.see.suggestions": "Tingnan ang Mga Mungkahi sa Pagsasaka",
     "home.hourly.forecast": "Hourly Forecast",
     "home.seven.day.outlook": "7-Araw na Outlook",
@@ -259,11 +269,13 @@ export const translations: Record<Language, Translations> = {
     "alerts.completed": "Natapos",
     "alerts.retry": "Subukan ulit",
     "alerts.expo.warning.title": "Limitado ang Notifications sa Expo Go",
-    "alerts.expo.warning.body": "Gumagana nang lubusan ang push notifications sa standalone builds lamang. Sa Expo Go, makikita ninyo ang mga alert dito ngunit maaaring hindi kayo makatanggap ng push notifications.",
+    "alerts.expo.warning.body":
+      "Gumagana nang lubusan ang push notifications sa standalone builds lamang. Sa Expo Go, makikita ninyo ang mga alert dito ngunit maaaring hindi kayo makatanggap ng push notifications.",
     "alerts.stats.scheduled": "Naka-schedule",
     "alerts.stats.today": "Ngayon",
     "alerts.stats.week": "Sa Linggong Ito",
-    "alerts.hint": "I-enable ang notifications para makatanggap ng napapanahong alerts para sa inyong mga tanim at kondisyon ng panahon.",
+    "alerts.hint":
+      "I-enable ang notifications para makatanggap ng napapanahong alerts para sa inyong mga tanim at kondisyon ng panahon.",
     "calendar.title": "Kalendaryo ng Pagsasaka",
     "calendar.safe": "Ligtas",
     "calendar.caution": "Mag-ingat",
@@ -273,7 +285,8 @@ export const translations: Record<Language, Translations> = {
     "calendar.skip": "Laktawan",
     "calendar.tasks.for": "Mga Gawain para sa",
     "calendar.typhoon.signal": "Typhoon Signal #1",
-    "calendar.select.crops": "Pumili ng mga tanim at itakda ang planting dates para makita ang daily tasks",
+    "calendar.select.crops":
+      "Pumili ng mga tanim at itakda ang planting dates para makita ang daily tasks",
     "calendar.create.task": "Gumawa ng Bagong Gawain",
     "calendar.task.title": "Pamagat ng Gawain",
     "calendar.time": "Oras",
@@ -300,17 +313,21 @@ export const translations: Record<Language, Translations> = {
     "location.select.municipality": "Pumili ng Munispalidad",
     "location.select.barangay": "Pumili ng Barangay",
     "location.permission.title": "Location Permission",
-    "location.permission.message": "Kailangan ang permission para auto-detect ang inyong lokasyon.",
+    "location.permission.message":
+      "Kailangan ang permission para auto-detect ang inyong lokasyon.",
     "location.auto.detect.failed": "Nabigo ang auto-detect",
     "personalization.title": "Personalization",
     "personalization.question": "Ano ang inyong itinatanim?",
-    "personalization.instruction": "Pumili ng lahat na naaangkop para makakuha ng personalized na weather alerts para sa inyong mga tanim.",
+    "personalization.instruction":
+      "Pumili ng lahat na naaangkop para makakuha ng personalized na weather alerts para sa inyong mga tanim.",
     "personalization.selected": "Napili",
     "personalization.finish": "Tapusin",
     "planting.title": "Itakda ang Planting Dates",
-    "planting.info": "Itakda ang planting dates para sa inyong mga tanim upang awtomatikong makagawa ng daily farming tasks.",
+    "planting.info":
+      "Itakda ang planting dates para sa inyong mga tanim upang awtomatikong makagawa ng daily farming tasks.",
     "planting.no.crops": "Walang Napiling Tanim",
-    "planting.no.crops.desc": "Mangyaring pumili muna ng mga tanim sa Personalization.",
+    "planting.no.crops.desc":
+      "Mangyaring pumili muna ng mga tanim sa Personalization.",
     "planting.duration": "Tagal: {{days}} araw",
     "planting.set.date": "Itakda ang Planting Date",
     "planting.edit.date": "I-edit ang Planting Date",
@@ -327,4 +344,3 @@ export const translations: Record<Language, Translations> = {
     "common.finish": "Tapusin",
   },
 };
-
