@@ -4,134 +4,80 @@ import { MaterialIcons } from "@expo/vector-icons";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { DailyForecastItem } from "@/lib/weather";
 
-type ForecastDay = {
-  day: string;
-  icon: keyof typeof MaterialIcons.glyphMap;
-  iconColor: string;
-  precipitation: number | null;
-  high: number;
-  low: number;
+type Props = {
+  data: DailyForecastItem[];
+  isLoading?: boolean;
 };
 
-const FORECAST_DATA: ForecastDay[] = [
-  {
-    day: "Today",
-    icon: "cloud",
-    iconColor: "#3b82f6",
-    precipitation: 90,
-    high: 28,
-    low: 24,
-  },
-  {
-    day: "Tue",
-    icon: "flash-on",
-    iconColor: "#4b5563",
-    precipitation: 100,
-    high: 26,
-    low: 23,
-  },
-  {
-    day: "Wed",
-    icon: "water-drop",
-    iconColor: "#1e40af",
-    precipitation: 40,
-    high: 29,
-    low: 25,
-  },
-  {
-    day: "Thu",
-    icon: "wb-cloudy",
-    iconColor: "#fbbf24",
-    precipitation: null,
-    high: 31,
-    low: 26,
-  },
-  {
-    day: "Fri",
-    icon: "wb-sunny",
-    iconColor: "#fbbf24",
-    precipitation: null,
-    high: 33,
-    low: 27,
-  },
-  {
-    day: "Sat",
-    icon: "wb-sunny",
-    iconColor: "#fbbf24",
-    precipitation: null,
-    high: 34,
-    low: 27,
-  },
-  {
-    day: "Sun",
-    icon: "wb-sunny",
-    iconColor: "#fbbf24",
-    precipitation: null,
-    high: 32,
-    low: 26,
-  },
-];
-
-export default function SevenDayOutlook() {
+export default function SevenDayOutlook({ data, isLoading }: Props) {
   const { colors, isDark } = useAppTheme();
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
   const getPrecipitationColor = (precipitation: number | null): string => {
     if (precipitation === null) return "transparent";
-    if (precipitation >= 80) return "#e74c3c"; // Red for high
-    return "#3b82f6"; // Blue for moderate
+    if (precipitation >= 80) return "#e74c3c";
+    return "#3b82f6";
   };
 
   const getPrecipitationBg = (precipitation: number | null): string => {
     if (precipitation === null) return "transparent";
     if (precipitation >= 80) {
-      return isDark ? "#7f1d1d" : "#fee2e2"; // Dark red for dark mode, light red for light
+      return isDark ? "#7f1d1d" : "#fee2e2";
     }
-    return isDark ? "#1e3a8a33" : "#dbeafe"; // Dark blue for dark mode, light blue for light
+    return isDark ? "#1e3a8a33" : "#dbeafe";
   };
+
+  const items = data && data.length > 0 ? data : [];
 
   return (
     <View style={styles.container}>
-      {FORECAST_DATA.map((day, index) => (
-        <View key={index}>
-          <View style={styles.dayRow}>
-            <View style={styles.dayLeft}>
-              <MaterialIcons
-                name={day.icon}
-                size={24}
-                color={day.iconColor}
-              />
-              <Text style={styles.dayName}>{day.day}</Text>
-            </View>
+      {isLoading && items.length === 0 ? (
+        <Text style={styles.placeholder}>Loading...</Text>
+      ) : items.length === 0 ? (
+        <Text style={styles.placeholder}>No forecast data</Text>
+      ) : (
+        items.map((day, index) => (
+          <View key={`${day.dayLabel}-${index}`}>
+            <View style={styles.dayRow}>
+              <View style={styles.dayLeft}>
+                <MaterialIcons
+                  name={day.icon as keyof typeof MaterialIcons.glyphMap}
+                  size={24}
+                  color={colors.text}
+                />
+                <Text style={styles.dayName}>{day.dayLabel}</Text>
+              </View>
 
-            <View style={styles.dayRight}>
-              {day.precipitation !== null && (
-                <View
-                  style={[
-                    styles.precipitationBadge,
-                    {
-                      backgroundColor: getPrecipitationBg(day.precipitation),
-                    },
-                  ]}
-                >
-                  <Text
+              <View style={styles.dayRight}>
+                {day.precipitation !== null && (
+                  <View
                     style={[
-                      styles.precipitationText,
-                      { color: getPrecipitationColor(day.precipitation) },
+                      styles.precipitationBadge,
+                      {
+                        backgroundColor: getPrecipitationBg(day.precipitation),
+                      },
                     ]}
                   >
-                    {day.precipitation}%
-                  </Text>
-                </View>
-              )}
-              <Text style={styles.highTemp}>{day.high}°</Text>
-              <Text style={styles.lowTemp}>{day.low}°</Text>
+                    <Text
+                      style={[
+                        styles.precipitationText,
+                        { color: getPrecipitationColor(day.precipitation) },
+                      ]}
+                    >
+                      {day.precipitation}%
+                    </Text>
+                  </View>
+                )}
+                <Text style={styles.highTemp}>{day.high}°</Text>
+                <Text style={styles.lowTemp}>{day.low}°</Text>
+              </View>
             </View>
+            {index < items.length - 1 && <View style={styles.divider} />}
           </View>
-          {index < FORECAST_DATA.length - 1 && <View style={styles.divider} />}
-        </View>
-      ))}
+        ))
+      )}
     </View>
   );
 }
@@ -144,6 +90,8 @@ const createStyles = (theme: Theme, isDark: boolean) =>
       marginHorizontal: 16,
       marginTop: 12,
       overflow: "hidden",
+      borderWidth: 1,
+      borderColor: theme.icon + "11",
     },
     dayRow: {
       flexDirection: "row",
@@ -194,5 +142,11 @@ const createStyles = (theme: Theme, isDark: boolean) =>
       height: 1,
       backgroundColor: theme.icon + "11",
       marginLeft: 52,
+    },
+    placeholder: {
+      padding: 16,
+      color: theme.textSubtle,
+      fontSize: 14,
+      textAlign: "center",
     },
   });

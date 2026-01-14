@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Image,
   Pressable,
@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { DailyForecastItem, fetchWeatherForecast } from "@/lib/weather";
 import { MaterialIcons } from "@expo/vector-icons";
 
 type FilterCategory = "all" | "urgent" | "weather" | "farming";
@@ -35,20 +36,6 @@ type Alert = {
 
 const ALERTS: Alert[] = [
   {
-    id: "typhoon-signal-2",
-    type: "urgent",
-    title: "URGENT: TYPHOON SIGNAL NO. 2",
-    subtitle: "Critical Weather Warning • Central Luzon",
-    timestamp: "Now",
-    description: "Expected landfall in 4 hours. Secure crops immediately.",
-    details:
-      "Strong winds (61-120 kph) expected within 24 hours. Risk of storm surge in coastal areas.",
-    image:
-      "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?auto=format&fit=crop&w=1200&q=80",
-    buttonText: "View Safety Protocols",
-    buttonIcon: "shield",
-  },
-  {
     id: "pest-warning",
     type: "farming",
     title: "FARMING ALERT",
@@ -61,26 +48,6 @@ const ALERTS: Alert[] = [
     iconColor: "#f59e0b",
     iconBg: "#fef3c7",
     buttonText: "See Treatment Plan",
-  },
-  {
-    id: "heavy-rainfall",
-    type: "weather",
-    title: "Heavy Rainfall Advisory",
-    timestamp: "Yesterday",
-    description: "Moderate rain expected",
-    icon: "water-drop",
-    iconColor: "#3b82f6",
-    iconBg: "#dbeafe",
-  },
-  {
-    id: "heat-stress",
-    type: "weather",
-    title: "Heat Stress Warning",
-    timestamp: "Yesterday, 1:45 PM",
-    description: "Hydration required",
-    icon: "wb-sunny",
-    iconColor: "#f59e0b",
-    iconBg: "#fef3c7",
   },
   {
     id: "fertilizer-schedule",
@@ -115,21 +82,123 @@ export default function AlertsScreen() {
   const { colors, isDark } = useAppTheme();
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState<FilterCategory>("all");
-
-  const filteredAlerts = useMemo(() => {
-    if (activeFilter === "all") {
-      return ALERTS.filter((alert) => alert.type !== "completed");
-    }
-    return ALERTS.filter(
-      (alert) =>
-        alert.type === activeFilter || (activeFilter === "urgent" && alert.type === "urgent"),
-    );
-  }, [activeFilter]);
-
-  const completedAlerts = useMemo(
+  const [weatherAlerts, setWeatherAlerts] = useState<Alert[]>([]);
+  const baseFarmingAlerts = useMemo(
+    () => ALERTS.filter((alert) => alert.type === "farming"),
+    [],
+  );
+  const baseCompletedAlerts = useMemo(
     () => ALERTS.filter((alert) => alert.type === "completed"),
     [],
   );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const buildWeatherAlerts = (daily: DailyForecastItem[]): Alert[] => {
+      const alerts: Alert[] = [];
+
+      if (!daily || daily.length === 0) {
+        return alerts;
+      }
+
+      const today = daily[0];
+      const tomorrow = daily[1];
+      const todayPrecip = today?.precipitation ?? 0;
+
+      // Urgent / heavy rain alert for today
+      if (todayPrecip >= 70) {
+        alerts.push({
+          id: "today-urgent-rain",
+          type: "urgent",
+          title: "URGENT: HEAVY RAIN TODAY",
+          subtitle: "High Flood & Runoff Risk Near Your Farm",
+          timestamp: "Now",
+          description: `Rain chance today is ${todayPrecip}%. Secure irrigation channels and delay fertilizer.`,
+          details:
+            "Expect intense showers and possible localized flooding, especially in low-lying areas.",
+          image:
+            "https://images.unsplash.com/photo-1504608524841-42fe6f032b4b?auto=format&fit=crop&w=1200&q=80",
+          buttonText: "View Safety Protocols",
+          buttonIcon: "shield",
+        });
+      } else if (todayPrecip >= 40) {
+        alerts.push({
+          id: "today-heavy-rain",
+          type: "weather",
+          title: "Heavy Rainfall Advisory",
+          subtitle: "Plan Field Work Carefully",
+          timestamp: "Today",
+          description: `Moderate to heavy rain possible today (${todayPrecip}% chance).`,
+          icon: "water-drop",
+          iconColor: "#3b82f6",
+          iconBg: "#dbeafe",
+        });
+      }
+
+      // Heat alert for today
+      if (today && today.high >= 34 && todayPrecip < 40) {
+        alerts.push({
+          id: "today-heat-stress",
+          type: "weather",
+          title: "Heat Stress Warning",
+          subtitle: "High Temperature Near Your Area",
+          timestamp: "Today Afternoon",
+          description: `High of ${today.high}°C. Extra irrigation and farmer hydration recommended.`,
+          icon: "wb-sunny",
+          iconColor: "#f59e0b",
+          iconBg: "#fef3c7",
+        });
+      }
+
+      // Tomorrow rain heads-up
+      if (tomorrow && (tomorrow.precipitation ?? 0) >= 60) {
+        alerts.push({
+          id: "tomorrow-rain",
+          type: "weather",
+          title: "Tomorrow Rain Alert",
+          subtitle: "Advance Planning",
+          timestamp: "Tomorrow",
+          description: `Rain chance tomorrow is ${tomorrow.precipitation}% – finish sensitive tasks today.`,
+          icon: "grain",
+          iconColor: "#3b82f6",
+          iconBg: "#dbeafe",
+        });
+      }
+
+      return alerts;
+    };
+
+    const loadWeatherAlerts = async () => {
+      try {
+        const { daily } = await fetchWeatherForecast();
+        if (!isMounted) return;
+        setWeatherAlerts(buildWeatherAlerts(daily));
+      } catch (error) {
+        console.error("Error building weather alerts:", error);
+      }
+    };
+
+    loadWeatherAlerts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const allActiveAlerts = useMemo(
+    () => [...weatherAlerts, ...baseFarmingAlerts],
+    [weatherAlerts, baseFarmingAlerts],
+  );
+
+  const filteredAlerts = useMemo(() => {
+    if (activeFilter === "all") {
+      return allActiveAlerts;
+    }
+    return allActiveAlerts.filter((alert) => alert.type === activeFilter);
+  }, [activeFilter, allActiveAlerts]);
+
+  const completedAlerts = baseCompletedAlerts;
 
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -12,34 +13,40 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { MaterialIcons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { Coordinates, MUNICIPALITY_COORDS } from "@/lib/weather";
 
 const MUNICIPALITIES = [
-  "Angeles City",
-  "Bacolor",
-  "Mabalacat",
-  "San Fernando",
-  "Mexico",
-  "Arayat",
-  "Candaba",
-  "Magalang",
-  "Masantol",
-  "San Luis",
+  "Abucay",
+  "Bagac",
+  "Balanga City",
+  "Dinalupihan",
+  "Hermosa",
+  "Limay",
+  "Mariveles",
+  "Morong",
+  "Orani",
+  "Orion",
+  "Pilar",
+  "Samal",
 ];
 
 const BARANGAYS: Record<string, string[]> = {
-  "Angeles City": ["Balibago", "Pampang", "Sapalibutad", "Cutcut", "Malabanias"],
-  "Bacolor": ["Cabambangan", "Dolores", "San Antonio", "San Isidro", "Talba"],
-  "Mabalacat": ["Dau", "Dolores", "Lakandula", "Mabiga", "Poblacion"],
-  "San Fernando": ["Bulaon", "Calulut", "Del Carmen", "Dolores", "Lourdes"],
-  "Mexico": ["Anao", "Balas", "Concepcion", "Lagundi", "San Antonio"],
-  "Arayat": ["Bucloc", "Camba", "Candating", "La Paz", "San Juan"],
-  "Candaba": ["Bancal", "Barangca", "Bulu", "Mangga", "Pulong Gubat"],
-  "Magalang": ["Ayala", "Balen", "Bucal", "Camias", "Dolores"],
-  "Masantol": ["Alauli", "Bagang", "Bebe Anac", "Bebe Matua", "Bulacus"],
-  "San Luis": ["San Agustin", "San Isidro", "San Jose", "San Nicolas", "San Pedro"],
+  Abucay: ["Calaylayan", "Gabon", "Laon", "Mabatang", "Wawa"],
+  Bagac: ["Atilano L. Ricardo", "Banawang", "Pag-asa", "Parang", "Ibaba"],
+  "Balanga City": ["Bagumbayan", "Cabog-Cabog", "Camacho", "Cupang North", "Poblacion"],
+  Dinalupihan: ["Bangal", "Bayan-bayanan", "Colo", "Pagalanggang", "Poblacion"],
+  Hermosa: ["A. Rivera", "Almacen", "Bacong", "Cataning", "Mabiga"],
+  Limay: ["Alangan", "Duale", "Kitang 2 & Luac", "Poblacion", "Wawa"],
+  Mariveles: ["Alas-asin", "Baseco Country", "Batangas II", "Poblacion", "Sisiman"],
+  Morong: ["Binaritan", "Mabayo", "Nagbalayong", "Poblacion", "Sabang"],
+  Orani: ["Apollo", "Bagong Paraiso", "Calero", "Dona", "Wawa"],
+  Orion: ["Arellano", "Bagumbayan", "Bilolo", "Lati", "Wakas"],
+  Pilar: ["Alauli", "Bagumbayan", "Del Rosario", "Pantingan", "Wawa"],
+  Samal: ["East Daang Bago", "Gugo", "Ibaba", "San Juan", "West Daang Bago"],
 };
 
 export default function SetLocationScreen() {
@@ -73,10 +80,59 @@ export default function SetLocationScreen() {
     ? BARANGAYS[selectedMunicipality] || []
     : [];
 
-  const handleAutoDetect = () => {
-    // In a real app, this would use GPS
-    setSelectedMunicipality("San Fernando");
-    setSelectedBarangay("Bulaon");
+  const getNearestMunicipality = (coords: Coordinates) => {
+    let nearest = "Balanga City";
+    let bestDistance = Number.MAX_SAFE_INTEGER;
+
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const earthRadiusKm = 6371;
+
+    Object.entries(MUNICIPALITY_COORDS).forEach(([name, loc]) => {
+      const dLat = toRad(loc.latitude - coords.latitude);
+      const dLon = toRad(loc.longitude - coords.longitude);
+      const lat1 = toRad(coords.latitude);
+      const lat2 = toRad(loc.latitude);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      const distance = earthRadiusKm * c;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        nearest = name;
+      }
+    });
+
+    return nearest;
+  };
+
+  const handleAutoDetect = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Location Permission", "Permission is required to auto-detect your location.");
+        return;
+      }
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+
+      const currentCoords: Coordinates = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+      };
+
+      const nearestMunicipality = getNearestMunicipality(currentCoords);
+      const barangayList = BARANGAYS[nearestMunicipality] || [];
+      const firstBarangay = barangayList[0] || "";
+
+      setSelectedMunicipality(nearestMunicipality);
+      setSelectedBarangay(firstBarangay);
+    } catch (error) {
+      console.error("Auto-detect error:", error);
+      Alert.alert("Auto-detect failed", "Unable to detect location right now. Please try again.");
+    }
   };
 
   const handleSave = async () => {

@@ -1,6 +1,8 @@
 import { MaterialIcons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import React, { useMemo, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter, useFocusEffect } from "expo-router";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Modal,
   Platform,
@@ -16,6 +18,21 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useUserCrops } from "@/hooks/use-user-crops";
+import { useCropPlantingDates } from "@/hooks/use-crop-planting-dates";
+import {
+  generateDailyTasks,
+  DailyTask,
+  TaskType,
+  TaskStatus,
+  getTaskColor,
+} from "@/lib/daily-tasks";
+import {
+  generateWeatherSuggestions,
+  WeatherInput,
+  LocationContext,
+} from "@/lib/weather-suggestions";
+import { DailyForecastItem, fetchWeatherForecast, CurrentWeather } from "@/lib/weather";
 
 type RiskLevel = "safe" | "caution" | "high-risk";
 
@@ -23,19 +40,23 @@ type Task = {
   id: string;
   title: string;
   time: string;
+  /** Date key in YYYY-MM-DD format so tasks are shown only on that specific day */
+  dateKey: string;
   riskLevel: RiskLevel;
   riskLabel: string;
   riskIcon: keyof typeof MaterialIcons.glyphMap;
   borderColor: string;
   recommendation?: string;
+  isDailyTask?: boolean;
+  dailyTask?: DailyTask;
+  cropName?: string;
+  taskType?: TaskType;
 };
 
-// Mock risk data for dates - in a real app, this would come from weather API
-const getRiskForDate = (date: Date): RiskLevel => {
-  const day = date.getDate();
-  // Simulate risk levels based on date
-  if ([7, 8, 9, 13].includes(day)) return "high-risk";
-  if ([4, 5, 6, 10, 14].includes(day)) return "caution";
+const getRiskFromPrecipitation = (precipitation: number | null | undefined): RiskLevel => {
+  const value = precipitation ?? 0;
+  if (value >= 70) return "high-risk";
+  if (value >= 40) return "caution";
   return "safe";
 };
 
@@ -83,32 +104,191 @@ const formatDate = (date: Date): string => {
   return `${months[date.getMonth()]} ${date.getDate()}`;
 };
 
+// Helper to format a JS Date into a YYYY-MM-DD string (same as react-native-calendars)
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const TASKS_STORAGE_KEY = "@plantanim:calendar_tasks";
+const TASK_STATUS_STORAGE_KEY = "@plantanim:daily_task_statuses";
+
+// Task Card Component
+function TaskCard({
+  task,
+  colors,
+  styles,
+  onComplete,
+  onSkip,
+}: {
+  task: Task;
+  colors: Theme;
+  styles: ReturnType<typeof createStyles>;
+  onComplete: () => void;
+  onSkip: () => void;
+}) {
+  const isCompleted = task.isDailyTask && task.dailyTask?.status === "Completed";
+  const isSkipped = task.isDailyTask && task.dailyTask?.status === "Skipped";
+
+  return (
+    <View
+      style={[
+        styles.taskCard,
+        { borderLeftColor: task.borderColor },
+        (isCompleted || isSkipped) && styles.taskCardInactive,
+      ]}
+    >
+      <View style={styles.taskHeader}>
+        <View style={styles.taskTitleRow}>
+          <Text
+            style={[
+              styles.taskTitle,
+              (isCompleted || isSkipped) && styles.taskTitleInactive,
+            ]}
+          >
+            {task.title}
+          </Text>
+          {task.riskLevel === "high-risk" && !isCompleted && !isSkipped && (
+            <MaterialIcons name="warning" size={20} color="#e74c3c" />
+          )}
+          {isCompleted && (
+            <MaterialIcons name="check-circle" size={20} color="#16a34a" />
+          )}
+          {isSkipped && (
+            <MaterialIcons name="cancel" size={20} color="#6b7280" />
+          )}
+        </View>
+        <View style={styles.taskTimeRow}>
+          {task.cropName && (
+            <>
+              <MaterialIcons name="eco" size={14} color={colors.textSubtle} />
+              <Text style={styles.taskCropName}>{task.cropName}</Text>
+            </>
+          )}
+          <MaterialIcons name="access-time" size={16} color={colors.textSubtle} />
+          <Text style={styles.taskTime}>{task.time}</Text>
+        </View>
+        {task.dailyTask?.description && (
+          <Text style={styles.taskDescription}>{task.dailyTask.description}</Text>
+        )}
+      </View>
+      <View style={styles.taskFooter}>
+        <View
+          style={[
+            styles.riskBadge,
+            {
+              backgroundColor:
+                task.riskLevel === "high-risk"
+                  ? "#fee2e2"
+                  : task.riskLevel === "caution"
+                    ? "#fef3c7"
+                    : "#dcfce7",
+            },
+          ]}
+        >
+          <MaterialIcons name={task.riskIcon} size={14} color={task.borderColor} />
+          <Text style={[styles.riskBadgeText, { color: task.borderColor }]}>
+            {task.riskLabel}
+          </Text>
+        </View>
+        {task.recommendation && !isCompleted && !isSkipped && (
+          <Text
+            style={[
+              styles.recommendation,
+              {
+                color:
+                  task.riskLevel === "high-risk" ? "#e74c3c" : "#f59e0b",
+              },
+            ]}
+          >
+            {task.recommendation}
+          </Text>
+        )}
+      </View>
+      {task.isDailyTask && !isCompleted && !isSkipped && (
+        <View style={styles.taskActions}>
+          <Pressable
+            style={[styles.taskActionButton, styles.skipButton]}
+            onPress={onSkip}
+          >
+            <MaterialIcons name="cancel" size={16} color={colors.textSubtle} />
+            <Text style={[styles.taskActionText, { color: colors.textSubtle }]}>
+              Skip
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.taskActionButton, styles.completeButton]}
+            onPress={onComplete}
+          >
+            <MaterialIcons name="check" size={16} color="#fff" />
+            <Text style={styles.taskActionTextWhite}>Complete</Text>
+          </Pressable>
+        </View>
+      )}
+    </View>
+  );
+}
+
+// Helper functions for daily tasks
+function getIconFromTaskType(taskType: TaskType): keyof typeof MaterialIcons.glyphMap {
+  switch (taskType) {
+    case "Planting":
+      return "eco";
+    case "Fertilizing":
+      return "agriculture";
+    case "Weeding":
+      return "grass";
+    case "Monitoring":
+      return "visibility";
+    case "HarvestPrep":
+      return "inventory";
+    case "Irrigation":
+      return "water-drop";
+    case "PestControl":
+      return "bug-report";
+    case "LandPreparation":
+      return "landscape";
+    default:
+      return "check-circle";
+  }
+}
+
+async function loadTaskStatuses(): Promise<Record<string, TaskStatus>> {
+  try {
+    const stored = await AsyncStorage.getItem(TASK_STATUS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : {};
+  } catch (error) {
+    console.error("Error loading task statuses:", error);
+    return {};
+  }
+}
+
+async function updateTaskStatus(
+  taskId: string,
+  status: TaskStatus,
+  skipReason?: string
+): Promise<void> {
+  try {
+    const statuses = await loadTaskStatuses();
+    statuses[taskId] = status;
+    await AsyncStorage.setItem(TASK_STATUS_STORAGE_KEY, JSON.stringify(statuses));
+  } catch (error) {
+    console.error("Error updating task status:", error);
+  }
+}
+
 
 export default function CalendarScreen() {
   const { colors, isDark } = useAppTheme();
-  const [selectedDate, setSelectedDate] = useState(new Date(2023, 9, 12)); // Oct 12
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Fertilizer Application",
-      time: "06:00 AM",
-      riskLevel: "high-risk",
-      riskLabel: "High Risk",
-      riskIcon: "flash-on",
-      borderColor: "#e74c3c",
-      recommendation: "RESCHEDULE RECOMMENDED",
-    },
-    {
-      id: "2",
-      title: "Equipment Check",
-      time: "02:00 PM",
-      riskLevel: "caution",
-      riskLabel: "Caution: Heavy Rain",
-      riskIcon: "water-drop",
-      borderColor: "#f59e0b",
-      recommendation: "PROCEED WITH CARE",
-    },
-  ]);
+  const router = useRouter();
+  const { crops } = useUserCrops();
+  const { plantingDates, getPlantingDate, loadPlantingDates } = useCropPlantingDates();
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [tasksLoaded, setTasksLoaded] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [selectedTime, setSelectedTime] = useState(new Date());
@@ -117,41 +297,250 @@ export default function CalendarScreen() {
     time: "",
     riskLevel: "safe" as RiskLevel,
   });
+  const [dailyForecast, setDailyForecast] = useState<DailyForecastItem[]>([]);
+  const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
+  const [locationContext, setLocationContext] = useState<LocationContext>({
+    municipality: "Balanga City",
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
+  // Load location context
+  useEffect(() => {
+    const loadLocation = async () => {
+      try {
+        const locationJson = await AsyncStorage.getItem("@plantanim:user_location");
+        if (locationJson) {
+          const location = JSON.parse(locationJson);
+          setLocationContext({
+            municipality: location.municipality || "Balanga City",
+            barangay: location.barangay,
+          });
+        }
+      } catch (error) {
+        console.error("Error loading location:", error);
+      }
+    };
+    loadLocation();
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadWeather = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const { daily, currentWeather: cw } = await fetchWeatherForecast();
+        if (!isMounted) return;
+        setDailyForecast(daily);
+        setCurrentWeather(cw);
+      } catch (e) {
+        console.error("Error loading calendar weather:", e);
+        if (!isMounted) return;
+        setError("Unable to load risk levels from latest forecast.");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    loadWeather();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Function to load daily tasks
+  const loadDailyTasks = useCallback(async () => {
+    try {
+      const selectedCrops = crops.filter((c) => c.selected);
+      if (selectedCrops.length === 0) {
+        setDailyTasks([]);
+        return;
+      }
+
+      const allTasks: DailyTask[] = [];
+      const currentDate = new Date();
+
+      for (const crop of selectedCrops) {
+        const plantingDate = getPlantingDate(crop.id);
+        if (plantingDate) {
+          const cropTasks = generateDailyTasks(
+            crop.id,
+            plantingDate,
+            currentDate,
+            60 // Look ahead 60 days
+          );
+          allTasks.push(...cropTasks);
+        }
+      }
+
+      // Load task statuses
+      const statuses = await loadTaskStatuses();
+
+      // Merge with saved statuses
+      const tasksWithStatus = allTasks.map((task) => ({
+        ...task,
+        status: statuses[task.id] || task.status,
+      }));
+
+      setDailyTasks(tasksWithStatus);
+    } catch (error) {
+      console.error("Error loading daily tasks:", error);
+    }
+  }, [crops, getPlantingDate]);
+
+  // Load tasks on mount and when dependencies change
+  useEffect(() => {
+    if (crops.length > 0) {
+      loadDailyTasks();
+    }
+  }, [crops, plantingDates, loadDailyTasks]);
+
+  // Refresh tasks when screen comes into focus (e.g., returning from planting dates screen)
+  useFocusEffect(
+    useCallback(() => {
+      // Reload planting dates and regenerate tasks when screen is focused
+      const refreshTasks = async () => {
+        await loadPlantingDates();
+        await loadDailyTasks();
+      };
+      
+      if (crops.length > 0) {
+        refreshTasks();
+      }
+    }, [crops, loadPlantingDates, loadDailyTasks])
+  );
+
+  // Load tasks from local storage on mount
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTasks = async () => {
+      try {
+        const stored = await AsyncStorage.getItem(TASKS_STORAGE_KEY);
+        if (!isMounted) return;
+
+        if (stored) {
+          const parsed: Task[] = JSON.parse(stored);
+          setTasks(parsed);
+        } else {
+          // Start with no tasks the first time the user opens the calendar
+          setTasks([]);
+        }
+      } catch (e) {
+        console.error("Error loading calendar tasks:", e);
+      } finally {
+        if (isMounted) setTasksLoaded(true);
+      }
+    };
+
+    loadTasks();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Persist tasks whenever they change (after initial load)
+  useEffect(() => {
+    if (!tasksLoaded) return;
+
+    AsyncStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks)).catch(
+      (e) => {
+        console.error("Error saving calendar tasks:", e);
+      }
+    );
+  }, [tasks, tasksLoaded]);
+
   // Format selected date for react-native-calendars (YYYY-MM-DD)
   const selectedDateString = useMemo(() => {
-    const year = selectedDate.getFullYear();
-    const month = String(selectedDate.getMonth() + 1).padStart(2, "0");
-    const day = String(selectedDate.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return formatDateKey(selectedDate);
   }, [selectedDate]);
 
-  // Create marked dates with risk indicators
+  // Map of date string -> risk level from daily forecast
+  const riskByDate = useMemo(() => {
+    const map: Record<
+      string,
+      {
+        risk: RiskLevel;
+        precipitation: number | null;
+      }
+    > = {};
+    dailyForecast.forEach((day) => {
+      const dateKey = day.dateISO?.slice(0, 10);
+      if (!dateKey) return;
+      const risk = getRiskFromPrecipitation(day.precipitation);
+      map[dateKey] = {
+        risk,
+        precipitation: day.precipitation,
+      };
+    });
+    return map;
+  }, [dailyForecast]);
+
+  // Create marked dates with risk indicators and task dots
   const markedDates = useMemo(() => {
     const marked: any = {};
-    const currentDate = new Date(2023, 9, 1); // October 2023
-    const lastDay = new Date(2023, 9, 31);
 
-    for (
-      let date = new Date(currentDate);
-      date <= lastDay;
-      date.setDate(date.getDate() + 1)
-    ) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const day = String(date.getDate()).padStart(2, "0");
-      const dateString = `${year}-${month}-${day}`;
-      const risk = getRiskForDate(date);
-
+    // Add weather risk dots
+    Object.entries(riskByDate).forEach(([dateString, value]) => {
       marked[dateString] = {
         marked: true,
-        dotColor: getRiskColor(risk),
+        dots: [
+          {
+            color: getRiskColor(value.risk),
+            selectedColor: getRiskColor(value.risk),
+          },
+        ],
       };
-    }
+    });
 
-    // Mark selected date
+    // Add task dots for pending daily tasks
+    dailyTasks.forEach((task) => {
+      if (task.status === "Pending") {
+        if (marked[task.date]) {
+          // Add to existing dots
+          marked[task.date].dots.push({
+            color: task.calendarColor,
+            selectedColor: task.calendarColor,
+          });
+        } else {
+          marked[task.date] = {
+            marked: true,
+            dots: [
+              {
+                color: task.calendarColor,
+                selectedColor: task.calendarColor,
+              },
+            ],
+          };
+        }
+      }
+    });
+
+    // Add manual task dots
+    tasks.forEach((task) => {
+      if (marked[task.dateKey]) {
+        marked[task.dateKey].dots.push({
+          color: task.borderColor,
+          selectedColor: task.borderColor,
+        });
+      } else {
+        marked[task.dateKey] = {
+          marked: true,
+          dots: [
+            {
+              color: task.borderColor,
+              selectedColor: task.borderColor,
+            },
+          ],
+        };
+      }
+    });
+
+    // Handle selected date
+    const selectedRisk = riskByDate[selectedDateString]?.risk ?? "safe";
     if (marked[selectedDateString]) {
       marked[selectedDateString] = {
         ...marked[selectedDateString],
@@ -163,12 +552,17 @@ export default function CalendarScreen() {
         selected: true,
         selectedColor: colors.tint + "22",
         marked: true,
-        dotColor: getRiskColor(getRiskForDate(selectedDate)),
+        dots: [
+          {
+            color: getRiskColor(selectedRisk),
+            selectedColor: getRiskColor(selectedRisk),
+          },
+        ],
       };
     }
 
     return marked;
-  }, [selectedDateString, colors.tint, selectedDate]);
+  }, [riskByDate, dailyTasks, tasks, selectedDateString, colors.tint]);
 
   // Memoize calendar theme to ensure it updates when colors change
   const calendarTheme = useMemo(
@@ -232,7 +626,8 @@ export default function CalendarScreen() {
   const handleCreateTask = () => {
     if (!newTask.title || !newTask.time) return;
 
-    const selectedRisk = getRiskForDate(selectedDate);
+    const selectedRisk =
+      riskByDate[selectedDateString]?.risk ?? getRiskFromPrecipitation(null);
     const riskIcon =
       selectedRisk === "high-risk"
         ? "flash-on"
@@ -244,6 +639,7 @@ export default function CalendarScreen() {
       id: Date.now().toString(),
       title: newTask.title,
       time: newTask.time,
+      dateKey: selectedDateString,
       riskLevel: selectedRisk,
       riskLabel: getRiskLabel(selectedRisk),
       riskIcon,
@@ -262,13 +658,89 @@ export default function CalendarScreen() {
     setShowTaskModal(false);
   };
 
-  const selectedDateTasks = tasks.filter((task) => {
-    // In a real app, tasks would have dates associated with them
-    // For now, we'll show all tasks for the selected date
-    return true;
-  });
+  // Generate weather suggestions for linking
+  const weatherSuggestions = useMemo(() => {
+    if (!currentWeather || dailyForecast.length === 0) return [];
 
-  const selectedDateRisk = getRiskForDate(selectedDate);
+    try {
+      return generateWeatherSuggestions(
+        {
+          currentWeather,
+          dailyForecast,
+          typhoonAlert: false,
+        },
+        locationContext,
+        {
+          selectedCropIds: crops.filter((c) => c.selected).map((c) => c.id),
+        },
+        {
+          tasks: dailyTasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            dateKey: t.date,
+            taskType: t.taskType,
+          })),
+        }
+      );
+    } catch (error) {
+      console.error("Error generating weather suggestions:", error);
+      return [];
+    }
+  }, [currentWeather, dailyForecast, crops, dailyTasks, locationContext]);
+
+  // Merge daily tasks with manual tasks for selected date
+  const selectedDateTasks = useMemo(() => {
+    const manualTasks = tasks.filter((task) => task.dateKey === selectedDateString);
+
+    // Convert daily tasks to Task format
+    const dailyTasksForDate = dailyTasks
+      .filter((task) => task.date === selectedDateString && task.status === "Pending")
+      .map((task) => {
+        const dateRisk = riskByDate[task.date]?.risk ?? "safe";
+        const riskIcon = getIconFromTaskType(task.taskType);
+        const hasWeatherWarning = task.isWeatherSensitive && dateRisk !== "safe";
+
+        // Find related weather suggestion
+        const relatedSuggestion = weatherSuggestions.find(
+          (s) =>
+            s.type === "ScheduleSuggestion" &&
+            (s.message.includes(task.title) ||
+              (task.isWeatherSensitive && s.priority === "HIGH"))
+        );
+
+        let recommendation: string | undefined;
+        if (hasWeatherWarning) {
+          if (dateRisk === "high-risk") {
+            recommendation = "RESCHEDULE RECOMMENDED";
+          } else if (relatedSuggestion) {
+            recommendation = relatedSuggestion.recommendedAction.slice(0, 30) + "...";
+          } else {
+            recommendation = "CHECK WEATHER";
+          }
+        }
+
+        return {
+          id: task.id,
+          title: task.title,
+          time: "All Day",
+          dateKey: task.date,
+          riskLevel: dateRisk,
+          riskLabel: getRiskLabel(dateRisk),
+          riskIcon,
+          borderColor: task.calendarColor,
+          recommendation,
+          isDailyTask: true,
+          dailyTask: task,
+          cropName: task.cropName,
+          taskType: task.taskType,
+        } as Task;
+      });
+
+    return [...dailyTasksForDate, ...manualTasks];
+  }, [dailyTasks, tasks, selectedDateString, riskByDate, weatherSuggestions]);
+
+  const selectedDateRisk =
+    riskByDate[selectedDateString]?.risk ?? getRiskFromPrecipitation(null);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -280,8 +752,11 @@ export default function CalendarScreen() {
         <View style={styles.header}>
           <View style={styles.placeholder} />
           <Text style={styles.screenTitle}>Farming Calendar</Text>
-          <Pressable style={styles.menuButton}>
-            <MaterialIcons name="more-vert" size={24} color={colors.text} />
+          <Pressable
+            style={styles.menuButton}
+            onPress={() => router.push("/set-planting-dates")}
+          >
+            <MaterialIcons name="calendar-today" size={24} color={colors.text} />
           </Pressable>
         </View>
 
@@ -308,7 +783,7 @@ export default function CalendarScreen() {
             current={selectedDateString}
             onDayPress={handleDayPress}
             markedDates={markedDates}
-            markingType="dot"
+            markingType="multi-dot"
             theme={calendarTheme}
             style={styles.calendarComponent}
           />
@@ -327,79 +802,45 @@ export default function CalendarScreen() {
 
           {selectedDateTasks.length > 0 ? (
             selectedDateTasks.map((task) => (
-              <View
+              <TaskCard
                 key={task.id}
-                style={[
-                  styles.taskCard,
-                  { borderLeftColor: task.borderColor },
-                ]}
-              >
-                <View style={styles.taskHeader}>
-                  <View style={styles.taskTitleRow}>
-                    <Text style={styles.taskTitle}>{task.title}</Text>
-                    {task.riskLevel === "high-risk" && (
-                      <MaterialIcons
-                        name="warning"
-                        size={20}
-                        color="#e74c3c"
-                      />
-                    )}
-                  </View>
-                  <View style={styles.taskTimeRow}>
-                    <MaterialIcons
-                      name="access-time"
-                      size={16}
-                      color={colors.textSubtle}
-                    />
-                    <Text style={styles.taskTime}>{task.time}</Text>
-                  </View>
-                </View>
-                <View style={styles.taskFooter}>
-                  <View
-                    style={[
-                      styles.riskBadge,
-                      {
-                        backgroundColor:
-                          task.riskLevel === "high-risk"
-                            ? "#fee2e2"
-                            : task.riskLevel === "caution"
-                              ? "#fef3c7"
-                              : "#dcfce7",
-                      },
-                    ]}
-                  >
-                    <MaterialIcons
-                      name={task.riskIcon}
-                      size={14}
-                      color={task.borderColor}
-                    />
-                    <Text
-                      style={[styles.riskBadgeText, { color: task.borderColor }]}
-                    >
-                      {task.riskLabel}
-                    </Text>
-                  </View>
-                  {task.recommendation && (
-                    <Text
-                      style={[
-                        styles.recommendation,
-                        {
-                          color:
-                            task.riskLevel === "high-risk"
-                              ? "#e74c3c"
-                              : "#f59e0b",
-                        },
-                      ]}
-                    >
-                      {task.recommendation}
-                    </Text>
-                  )}
-                </View>
-              </View>
+                task={task}
+                colors={colors}
+                styles={styles}
+                onComplete={async () => {
+                  if (task.isDailyTask && task.dailyTask) {
+                    await updateTaskStatus(task.dailyTask.id, "Completed");
+                    setDailyTasks((prev) =>
+                      prev.map((t) =>
+                        t.id === task.dailyTask!.id
+                          ? { ...t, status: "Completed" }
+                          : t
+                      )
+                    );
+                  }
+                }}
+                onSkip={async () => {
+                  if (task.isDailyTask && task.dailyTask) {
+                    await updateTaskStatus(task.dailyTask.id, "Skipped");
+                    setDailyTasks((prev) =>
+                      prev.map((t) =>
+                        t.id === task.dailyTask!.id
+                          ? { ...t, status: "Skipped" }
+                          : t
+                      )
+                    );
+                  }
+                }}
+              />
             ))
           ) : (
             <View style={styles.emptyTasks}>
               <Text style={styles.emptyTasksText}>No tasks scheduled</Text>
+              {crops.filter((c) => c.selected).length === 0 && (
+                <Text style={[styles.emptyTasksText, { marginTop: 8 }]}>
+                  Select crops and set planting dates to see daily tasks
+                </Text>
+              )}
             </View>
           )}
         </View>
@@ -657,6 +1098,9 @@ const createStyles = (theme: Theme) =>
       borderLeftWidth: 4,
       gap: 12,
     },
+    taskCardInactive: {
+      opacity: 0.6,
+    },
     taskHeader: {
       gap: 8,
     },
@@ -671,6 +1115,9 @@ const createStyles = (theme: Theme) =>
       color: theme.text,
       flex: 1,
     },
+    taskTitleInactive: {
+      textDecorationLine: "line-through",
+    },
     taskTimeRow: {
       flexDirection: "row",
       alignItems: "center",
@@ -679,6 +1126,18 @@ const createStyles = (theme: Theme) =>
     taskTime: {
       fontSize: 14,
       color: theme.textSubtle,
+    },
+    taskCropName: {
+      fontSize: 12,
+      color: theme.textSubtle,
+      fontWeight: "600",
+      marginRight: 8,
+    },
+    taskDescription: {
+      fontSize: 13,
+      color: theme.textSubtle,
+      lineHeight: 18,
+      marginTop: 4,
     },
     taskFooter: {
       flexDirection: "row",
@@ -710,6 +1169,41 @@ const createStyles = (theme: Theme) =>
     emptyTasksText: {
       fontSize: 14,
       color: theme.textSubtle,
+    },
+    taskActions: {
+      flexDirection: "row",
+      gap: 8,
+      marginTop: 8,
+      paddingTop: 8,
+      borderTopWidth: 1,
+      borderTopColor: theme.icon + "22",
+    },
+    taskActionButton: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 6,
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 12,
+    },
+    skipButton: {
+      backgroundColor: theme.surface,
+      borderWidth: 1,
+      borderColor: theme.icon + "33",
+    },
+    completeButton: {
+      backgroundColor: theme.tint,
+    },
+    taskActionText: {
+      fontSize: 14,
+      fontWeight: "700",
+    },
+    taskActionTextWhite: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: "#fff",
     },
     fab: {
       position: "absolute",

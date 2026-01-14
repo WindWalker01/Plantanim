@@ -4,11 +4,23 @@ import { ImageBackground, StyleSheet, Text, View } from "react-native";
 
 import { Fonts, Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import type { CurrentWeather } from "@/lib/weather";
 
-export default function HeroCard() {
+type Props = {
+  currentWeather?: CurrentWeather | null;
+};
+
+export default function HeroCard({ currentWeather }: Props) {
   const { colors, fonts } = useAppTheme();
 
   const styles = createStyles(colors, fonts);
+
+  const dateLabel = currentWeather?.dateLabel ?? "Today";
+  const temperature = currentWeather?.temperature ?? 28;
+  const feelsLike = currentWeather?.apparentTemperature ?? null;
+  const wind = currentWeather?.windSpeedKmh ?? null;
+  const summary = currentWeather?.summary ?? "Cloudy with High Rain Probability";
+
   return (
     <View style={styles.heroCard}>
       <ImageBackground
@@ -24,18 +36,17 @@ export default function HeroCard() {
         />
 
         <View style={styles.heroContent}>
-          <Text style={styles.heroDate}>Today, Oct 25</Text>
+          <Text style={styles.heroDate}>{dateLabel}</Text>
 
           <View style={styles.heroTempRow}>
             <Ionicons name="partly-sunny" size={64} color="#fde047" />
-            <Text style={styles.heroTemp}>28°</Text>
+            <Text style={styles.heroTemp}>{temperature}°</Text>
           </View>
 
-          <Text style={styles.heroTitle}>
-            Cloudy with High Rain Probability
-          </Text>
+          <Text style={styles.heroTitle}>{summary}</Text>
           <Text style={styles.heroSubtitle}>
-            Feels like 32° • Wind N 12km/h
+            {feelsLike !== null ? `Feels like ${feelsLike}°` : "Feels similar to actual temp"}
+            {wind !== null ? ` • Wind ${wind} km/h` : ""}
           </Text>
         </View>
       </ImageBackground>
