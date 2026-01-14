@@ -29,11 +29,10 @@ import {
   isExpoGo,
   areNotificationsSupported,
 } from "@/lib/notifications";
-import { DailyTask } from "@/lib/daily-tasks";
+import { DailyTask, TaskStatus, generateDailyTasks } from "@/lib/daily-tasks";
 import { Suggestion } from "@/lib/weather-suggestions";
 import { useUserCrops } from "@/hooks/use-user-crops";
 import { useCropPlantingDates } from "@/hooks/use-crop-planting-dates";
-import { generateDailyTasks } from "@/lib/daily-tasks";
 import { generateWeatherSuggestions } from "@/lib/weather-suggestions";
 
 type FilterCategory = "all" | "urgent" | "weather" | "farming";
@@ -55,42 +54,52 @@ type Alert = {
   isCompleted?: boolean;
 };
 
-const ALERTS: Alert[] = [
-  {
-    id: "pest-warning",
-    type: "farming",
-    title: "FARMING ALERT",
-    subtitle: "Pest Warning: Brown Planthopper",
-    timestamp: "Today, 8:00 AM",
-    description: "High risk of infestation",
-    details:
-      "Scouting reports indicate increased population in rice fields. Immediate preventive action recommended.",
-    icon: "pest-control",
-    iconColor: "#f59e0b",
-    iconBg: "#fef3c7",
-    buttonText: "See Treatment Plan",
-  },
-  {
-    id: "fertilizer-schedule",
-    type: "completed",
-    title: "Fertilizer Schedule",
-    timestamp: "Mon, 9:00 AM",
-    icon: "eco",
-    iconColor: "#16a34a",
-    iconBg: "#dcfce7",
-    isCompleted: true,
-  },
-  {
-    id: "irrigation-complete",
-    type: "completed",
-    title: "Irrigation Complete",
-    timestamp: "Sun, 5:30 PM",
-    icon: "water-drop",
-    iconColor: "#3b82f6",
-    iconBg: "#dbeafe",
-    isCompleted: true,
-  },
-];
+// Helper function to get icon for task type
+function getIconForTaskType(taskType: string): keyof typeof MaterialIcons.glyphMap {
+  switch (taskType) {
+    case "Planting":
+      return "eco";
+    case "Fertilizing":
+      return "agriculture";
+    case "Weeding":
+      return "grass";
+    case "Monitoring":
+      return "visibility";
+    case "HarvestPrep":
+    case "Harvest":
+      return "inventory";
+    case "Irrigation":
+      return "water-drop";
+    case "PestControl":
+      return "pest-control";
+    case "LandPreparation":
+      return "landscape";
+    default:
+      return "check-circle";
+  }
+}
+
+// Helper function to format date for display
+function formatAlertDate(date: Date): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const weekAgo = new Date(today);
+  weekAgo.setDate(weekAgo.getDate() - 7);
+
+  const dateOnly = new Date(date);
+  dateOnly.setHours(0, 0, 0, 0);
+
+  if (dateOnly.getTime() === today.getTime()) {
+    return "Today";
+  } else if (dateOnly.getTime() === yesterday.getTime()) {
+    return "Yesterday";
+  } else {
+    const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return daysOfWeek[date.getDay()];
+  }
+}
 
 const FILTER_CATEGORIES: { key: FilterCategory; label: string }[] = [
   { key: "all", label: "All" },
@@ -111,14 +120,7 @@ export default function AlertsScreen() {
   const [upcomingTasks, setUpcomingTasks] = useState<DailyTask[]>([]);
   const [urgentSuggestions, setUrgentSuggestions] = useState<Suggestion[]>([]);
   const [isExpoGoEnv, setIsExpoGoEnv] = useState(false);
-  const baseFarmingAlerts = useMemo(
-    () => ALERTS.filter((alert) => alert.type === "farming"),
-    [],
-  );
-  const baseCompletedAlerts = useMemo(
-    () => ALERTS.filter((alert) => alert.type === "completed"),
-    [],
-  );
+  const [completedTasks, setCompletedTasks] = useState<Alert[]>([]);
 
   // Check if running in Expo Go
   useEffect(() => {
@@ -362,9 +364,92 @@ export default function AlertsScreen() {
     };
   }, []);
 
+  // Load completed tasks from the past week
+  useEffect(() => {
+    const loadCompletedTasks = async () => {
+      try {
+        const TASK_STATUS_STORAGE_KEY = "@plantanim:daily_task_statuses";
+        const statusesJson = await AsyncStorage.getItem(TASK_STATUS_STORAGE_KEY);
+        const statuses: Record<string, TaskStatus> = statusesJson ? JSON.parse(statusesJson) : {};
+
+        // Generate all tasks for all crops
+        const allTasks: DailyTask[] = [];
+        const selectedCrops = crops.filter((c) => c.selected);
+        
+        for (const crop of selectedCrops) {
+          const dates = plantingDates.filter((pd) => pd.cropId === crop.id);
+          for (const pd of dates) {
+            // Generate tasks for the past 30 days to catch completed ones
+            const pastDate = new Date();
+            pastDate.setDate(pastDate.getDate() - 30);
+            const tasks = generateDailyTasks(
+              crop.id,
+              new Date(pd.plantingDate),
+              pastDate,
+              60 // Look back 30 days and ahead 30 days
+            );
+            allTasks.push(...tasks);
+          }
+        }
+
+        // Filter for completed tasks from the past week
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+
+        const completedAlerts: Alert[] = [];
+        for (const task of allTasks) {
+          const taskStatus = statuses[task.id];
+          if (taskStatus === "Completed") {
+            const taskDate = new Date(task.date + "T00:00:00");
+            // Only include tasks from the past week
+            if (taskDate >= weekAgo && taskDate < today) {
+              completedAlerts.push({
+                id: task.id,
+                type: "completed",
+                title: task.title,
+                timestamp: formatAlertDate(taskDate),
+                icon: getIconForTaskType(task.taskType),
+                iconColor: "#16a34a",
+                iconBg: "#dcfce7",
+                isCompleted: true,
+                description: task.cropName,
+              });
+            }
+          }
+        }
+
+        // Sort by date (most recent first)
+        // Store the actual date in the alert for sorting
+        const alertsWithDates = completedAlerts.map(alert => {
+          const task = allTasks.find(t => t.id === alert.id);
+          return {
+            ...alert,
+            _sortDate: task ? new Date(task.date + "T00:00:00") : new Date(0),
+          };
+        });
+        
+        alertsWithDates.sort((a, b) => b._sortDate.getTime() - a._sortDate.getTime());
+        
+        // Remove the temporary _sortDate property
+        const sortedAlerts = alertsWithDates.map(({ _sortDate, ...alert }) => alert);
+
+        setCompletedTasks(sortedAlerts);
+      } catch (error) {
+        console.error("Error loading completed tasks:", error);
+        setCompletedTasks([]);
+      }
+    };
+
+    if (crops.length > 0 && plantingDates.length > 0) {
+      loadCompletedTasks();
+    }
+  }, [crops, plantingDates]);
+
   const allActiveAlerts = useMemo(
-    () => [...weatherAlerts, ...baseFarmingAlerts],
-    [weatherAlerts, baseFarmingAlerts],
+    () => [...weatherAlerts],
+    [weatherAlerts],
   );
 
   const filteredAlerts = useMemo(() => {
@@ -373,8 +458,6 @@ export default function AlertsScreen() {
     }
     return allActiveAlerts.filter((alert) => alert.type === activeFilter);
   }, [activeFilter, allActiveAlerts]);
-
-  const completedAlerts = baseCompletedAlerts;
 
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
@@ -520,10 +603,10 @@ export default function AlertsScreen() {
         </View>
 
         {/* Earlier This Week Section */}
-        {completedAlerts.length > 0 && (
+        {completedTasks.length > 0 && (
           <View style={styles.completedSection}>
             <Text style={styles.sectionLabel}>EARLIER THIS WEEK</Text>
-            {completedAlerts.map((alert) => (
+            {completedTasks.map((alert) => (
               <CompletedAlertCard
                 key={alert.id}
                 alert={alert}
