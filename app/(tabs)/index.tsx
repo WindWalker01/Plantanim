@@ -6,6 +6,7 @@ import TopBar from "@/components/home/top-bar";
 import SevenDayOutlook from "@/components/seven-day-outlook";
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useLanguage } from "@/hooks/use-language";
 import {
   CurrentWeather,
   DailyForecastItem,
@@ -27,6 +28,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function HomeScreen() {
   const scheme = useColorScheme() ?? "light";
   const { colors } = useAppTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [hourlyForecast, setHourlyForecast] = useState<HourlyForecastItem[]>([]);
   const [dailyForecast, setDailyForecast] = useState<DailyForecastItem[]>([]);
@@ -50,7 +52,7 @@ export default function HomeScreen() {
       } catch (error) {
         console.error("Error fetching weather:", error);
         if (!isMounted) return;
-        setWeatherError("Unable to load latest forecast.");
+        setWeatherError(t("home.loading.forecast"));
       } finally {
         if (isMounted) setIsWeatherLoading(false);
       }
@@ -73,7 +75,7 @@ export default function HomeScreen() {
         <RiskLevel todayPrecipitation={dailyForecast[0]?.precipitation} />
 
         {/* ADVICE */}
-        <Text style={styles.sectionTitle}>What this means for your farm</Text>
+        <Text style={styles.sectionTitle}>{t("home.what.this.means")}</Text>
 
         <View style={styles.adviceCard}>
           <View style={styles.adviceIcon}>
@@ -81,8 +83,8 @@ export default function HomeScreen() {
           </View>
           <Text style={styles.adviceText}>
             {dailyForecast[0]?.precipitation != null
-              ? `Rain chance today is ${dailyForecast[0].precipitation}%. Plan fertilizer and field work around heavy showers.`
-              : "We’ll tailor farming advice as soon as the latest rain forecast is available for your farm."}
+              ? t("home.advice.rain", { percent: dailyForecast[0].precipitation })
+              : t("home.advice.no.data")}
           </Text>
         </View>
 
@@ -92,16 +94,16 @@ export default function HomeScreen() {
           onPress={() => router.push("/farming-suggestions")}
         >
           <MaterialIcons name="agriculture" size={22} color="#fff" />
-          <Text style={styles.ctaText}>See Farming Suggestions</Text>
+          <Text style={styles.ctaText}>{t("home.see.suggestions")}</Text>
         </Pressable>
 
-        <Text style={styles.sectionTitle}>Hourly Forecast</Text>
+        <Text style={styles.sectionTitle}>{t("home.hourly.forecast")}</Text>
 
         {weatherError && <Text style={styles.infoText}>{weatherError}</Text>}
 
         <HourlyForecast data={hourlyForecast} isLoading={isWeatherLoading} />
 
-        <Text style={styles.sectionTitle}>7-Day Outlook</Text>
+        <Text style={styles.sectionTitle}>{t("home.seven.day.outlook")}</Text>
 
         <SevenDayOutlook data={dailyForecast} isLoading={isWeatherLoading} />
       </ScrollView>

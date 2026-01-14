@@ -17,6 +17,7 @@ import * as Location from "expo-location";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useLanguage } from "@/hooks/use-language";
 import { Coordinates, MUNICIPALITY_COORDS } from "@/lib/weather";
 
 const MUNICIPALITIES = [
@@ -51,6 +52,7 @@ const BARANGAYS: Record<string, string[]> = {
 
 export default function SetLocationScreen() {
   const { colors } = useAppTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>("");
   const [selectedBarangay, setSelectedBarangay] = useState<string>("");
@@ -110,7 +112,7 @@ export default function SetLocationScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert("Location Permission", "Permission is required to auto-detect your location.");
+        Alert.alert(t("location.permission.title"), t("location.permission.message"));
         return;
       }
 
@@ -131,7 +133,7 @@ export default function SetLocationScreen() {
       setSelectedBarangay(firstBarangay);
     } catch (error) {
       console.error("Auto-detect error:", error);
-      Alert.alert("Auto-detect failed", "Unable to detect location right now. Please try again.");
+      Alert.alert(t("location.auto.detect.failed"), t("location.auto.detect.failed"));
     }
   };
 
@@ -177,7 +179,7 @@ export default function SetLocationScreen() {
           >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={styles.screenTitle}>Set Location</Text>
+          <Text style={styles.screenTitle}>{t("location.title")}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -199,7 +201,7 @@ export default function SetLocationScreen() {
           <Pressable style={styles.autoDetectCard} onPress={handleAutoDetect}>
             <MaterialIcons name="my-location" size={24} color="#137fec" />
             <View style={styles.autoDetectTextContainer}>
-              <Text style={styles.autoDetectTitle}>Auto-detect Location</Text>
+              <Text style={styles.autoDetectTitle}>{t("location.auto.detect")}</Text>
               <Text style={styles.autoDetectSubtitle}>
                 Use current GPS position
               </Text>
@@ -216,7 +218,7 @@ export default function SetLocationScreen() {
 
           {/* Municipality Field */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Municipality</Text>
+            <Text style={styles.inputLabel}>{t("location.municipality")}</Text>
             <Pressable
               style={styles.selectField}
               onPress={() => setShowMunicipalityModal(true)}
@@ -227,7 +229,7 @@ export default function SetLocationScreen() {
                   !selectedMunicipality && styles.selectFieldPlaceholder,
                 ]}
               >
-                {selectedMunicipality || "Select Municipality"}
+                {selectedMunicipality || t("location.select.municipality")}
               </Text>
               <MaterialIcons
                 name="keyboard-arrow-down"
@@ -239,7 +241,7 @@ export default function SetLocationScreen() {
 
           {/* Barangay Field */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Barangay</Text>
+            <Text style={styles.inputLabel}>{t("location.barangay")}</Text>
             <Pressable
               style={[
                 styles.selectField,
@@ -255,7 +257,7 @@ export default function SetLocationScreen() {
                     styles.selectFieldPlaceholder,
                 ]}
               >
-                {selectedBarangay || "Select Barangay"}
+                {selectedBarangay || t("location.select.barangay")}
               </Text>
               <MaterialIcons
                 name="keyboard-arrow-down"
@@ -281,7 +283,7 @@ export default function SetLocationScreen() {
           onPress={handleSave}
           disabled={!selectedMunicipality || !selectedBarangay}
         >
-          <Text style={styles.saveButtonText}>Save and Continue</Text>
+          <Text style={styles.saveButtonText}>{t("location.save")}</Text>
           <MaterialIcons name="arrow-forward" size={20} color="#fff" />
         </Pressable>
       </View>
@@ -296,7 +298,7 @@ export default function SetLocationScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Municipality</Text>
+              <Text style={styles.modalTitle}>{t("location.select.municipality")}</Text>
               <Pressable onPress={() => setShowMunicipalityModal(false)}>
                 <MaterialIcons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -333,7 +335,7 @@ export default function SetLocationScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Barangay</Text>
+              <Text style={styles.modalTitle}>{t("location.select.barangay")}</Text>
               <Pressable onPress={() => setShowBarangayModal(false)}>
                 <MaterialIcons name="close" size={24} color={colors.text} />
               </Pressable>

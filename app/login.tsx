@@ -16,9 +16,11 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useLanguage } from "@/hooks/use-language";
 
 export default function LoginScreen() {
   const { colors } = useAppTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [email, setEmail] = useState("juan@plantanim.com");
   const [password, setPassword] = useState("........");
@@ -64,17 +66,14 @@ export default function LoginScreen() {
           contentContainerStyle={styles.formContent}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.welcomeTitle}>Welcome Back</Text>
+          <Text style={styles.welcomeTitle}>{t("login.welcome")}</Text>
           <Text style={styles.instructionText}>
-            Please login with your email and password.
-          </Text>
-          <Text style={styles.instructionTextFilipino}>
-            Mag-login gamit ang iyong email at password.
+            {t("login.instruction")}
           </Text>
 
           {/* Email Field */}
           <View style={styles.inputGroup}>
-            <Text style={styles.inputLabel}>Email Address</Text>
+            <Text style={styles.inputLabel}>{t("login.email")}</Text>
             <View style={styles.inputContainer}>
               <MaterialIcons
                 name="email"
@@ -97,9 +96,9 @@ export default function LoginScreen() {
           {/* Password Field */}
           <View style={styles.inputGroup}>
             <View style={styles.passwordLabelRow}>
-              <Text style={styles.inputLabel}>Password</Text>
+              <Text style={styles.inputLabel}>{t("login.password")}</Text>
               <Pressable>
-                <Text style={styles.forgotPassword}>Forgot Password?</Text>
+                <Text style={styles.forgotPassword}>{t("login.forgot.password")}</Text>
               </Pressable>
             </View>
             <View style={styles.inputContainer}>
@@ -132,15 +131,15 @@ export default function LoginScreen() {
 
           {/* Login Button */}
           <Pressable style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Login</Text>
+            <Text style={styles.loginButtonText}>{t("login.button")}</Text>
             <MaterialIcons name="arrow-forward" size={20} color="#fff" />
           </Pressable>
 
           {/* Sign Up Link */}
           <View style={styles.signUpContainer}>
-            <Text style={styles.signUpText}>New to Plantanim? </Text>
+            <Text style={styles.signUpText}>{t("login.signup.text")}</Text>
             <Pressable>
-              <Text style={styles.signUpLink}>Sign Up</Text>
+              <Text style={styles.signUpLink}>{t("login.signup.link")}</Text>
             </Pressable>
           </View>
 
@@ -148,27 +147,25 @@ export default function LoginScreen() {
           <View style={styles.footerLinks}>
             <Pressable style={styles.footerLink}>
               <MaterialIcons name="help-outline" size={16} color="#6b7280" />
-              <Text style={styles.footerLinkText}>Help</Text>
+              <Text style={styles.footerLinkText}>{t("login.help")}</Text>
             </Pressable>
             <Pressable style={styles.footerLink}>
               <MaterialIcons name="check-circle-outline" size={16} color="#6b7280" />
-              <Text style={styles.footerLinkText}>Privacy</Text>
+              <Text style={styles.footerLinkText}>{t("login.privacy")}</Text>
             </Pressable>
           </View>
         </ScrollView>
 
         {/* Terms and Policy */}
         <View style={styles.termsContainer}>
-          <Text style={styles.termsText}>
-            By logging in, you agree to Project Plantanim's{" "}
-          </Text>
+          <Text style={styles.termsText}>{t("login.terms.text")}</Text>
           <View style={styles.termsLinks}>
             <Pressable>
-              <Text style={styles.termsLink}>Terms of Service</Text>
+              <Text style={styles.termsLink}>{t("login.terms.link")}</Text>
             </Pressable>
             <Text style={styles.termsText}> and </Text>
             <Pressable>
-              <Text style={styles.termsLink}>Privacy Policy</Text>
+              <Text style={styles.termsLink}>{t("login.privacy.link")}</Text>
             </Pressable>
           </View>
         </View>

@@ -50,8 +50,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const t = (key: keyof typeof translations.en): string => {
-    return translations[language][key] || key;
+  const t = (key: keyof typeof translations.en, params?: Record<string, string | number>): string => {
+    let text = translations[language][key] || key;
+    if (params) {
+      Object.entries(params).forEach(([paramKey, paramValue]) => {
+        text = text.replace(new RegExp(`{{${paramKey}}}`, "g"), String(paramValue));
+      });
+    }
+    return text;
   };
 
   const languageName =

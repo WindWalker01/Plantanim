@@ -3,9 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Fonts, Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useLanguage } from "@/hooks/use-language";
 
 export default function TopBar() {
   const { colors, fonts } = useAppTheme();
+  const { t } = useLanguage();
 
   const styles = createStyles(colors, fonts);
   return (
@@ -13,7 +15,7 @@ export default function TopBar() {
       <View style={styles.location}>
         <MaterialIcons name="location-on" size={24} color={colors.tint} />
         <View>
-          <Text style={styles.locationLabel}>Current Location</Text>
+          <Text style={styles.locationLabel}>{t("home.location.current")}</Text>
           <Text style={styles.locationValue}>Central Luzon, PH</Text>
         </View>
       </View>
