@@ -14,6 +14,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useLanguage } from "@/hooks/use-language";
 
 const STORAGE_KEY = "@plantanim:user_crops";
 
@@ -79,6 +80,7 @@ const CROPS: Crop[] = [
 
 export default function PersonalizationScreen() {
   const { colors } = useAppTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const [crops, setCrops] = useState<Crop[]>(CROPS);
   const [isLoading, setIsLoading] = useState(true);
@@ -172,15 +174,15 @@ export default function PersonalizationScreen() {
           >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={styles.screenTitle}>Personalization</Text>
+          <Text style={styles.screenTitle}>{t("personalization.title")}</Text>
           <View style={styles.placeholder} />
         </View>
 
         {/* Main Content */}
         <View style={styles.content}>
-          <Text style={styles.mainQuestion}>What are you growing?</Text>
+          <Text style={styles.mainQuestion}>{t("personalization.question")}</Text>
           <Text style={styles.instruction}>
-            Select all that apply to get personalized weather alerts for your crops.
+            {t("personalization.instruction")}
           </Text>
 
           {/* Crop Grid */}
@@ -216,7 +218,7 @@ export default function PersonalizationScreen() {
                       crop.selected && styles.cropSubtitleSelected,
                     ]}
                   >
-                    {crop.selected ? "Selected" : crop.subtitle}
+                    {crop.selected ? t("personalization.selected") : crop.subtitle}
                   </Text>
                 </View>
               </Pressable>
@@ -231,7 +233,7 @@ export default function PersonalizationScreen() {
           style={styles.finishButton}
           onPress={handleFinish}
         >
-          <Text style={styles.finishButtonText}>Finish Setup</Text>
+          <Text style={styles.finishButtonText}>{t("personalization.finish")}</Text>
         </Pressable>
       </View>
     </SafeAreaView>

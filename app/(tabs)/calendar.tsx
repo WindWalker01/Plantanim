@@ -18,6 +18,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useLanguage } from "@/hooks/use-language";
 import { useUserCrops } from "@/hooks/use-user-crops";
 import { useCropPlantingDates } from "@/hooks/use-crop-planting-dates";
 import {
@@ -73,16 +74,17 @@ const getRiskColor = (risk: RiskLevel): string => {
   }
 };
 
-const getRiskLabel = (risk: RiskLevel): string => {
+// getRiskLabel will be called with translations in the component
+const getRiskLabel = (risk: RiskLevel, t: (key: keyof import("@/constants/translations").Translations) => string): string => {
   switch (risk) {
     case "safe":
-      return "Safe";
+      return t("calendar.safe");
     case "caution":
-      return "Caution";
+      return t("calendar.caution");
     case "high-risk":
-      return "High Risk";
+      return t("calendar.high.risk");
     default:
-      return "Safe";
+      return t("calendar.safe");
   }
 };
 
@@ -120,14 +122,10 @@ function TaskCard({
   task,
   colors,
   styles,
-  onComplete,
-  onSkip,
 }: {
   task: Task;
   colors: Theme;
   styles: ReturnType<typeof createStyles>;
-  onComplete: () => void;
-  onSkip: () => void;
 }) {
   const isCompleted = task.isDailyTask && task.dailyTask?.status === "Completed";
   const isSkipped = task.isDailyTask && task.dailyTask?.status === "Skipped";
@@ -207,26 +205,6 @@ function TaskCard({
           </Text>
         )}
       </View>
-      {task.isDailyTask && !isCompleted && !isSkipped && (
-        <View style={styles.taskActions}>
-          <Pressable
-            style={[styles.taskActionButton, styles.skipButton]}
-            onPress={onSkip}
-          >
-            <MaterialIcons name="cancel" size={16} color={colors.textSubtle} />
-            <Text style={[styles.taskActionText, { color: colors.textSubtle }]}>
-              Skip
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.taskActionButton, styles.completeButton]}
-            onPress={onComplete}
-          >
-            <MaterialIcons name="check" size={16} color="#fff" />
-            <Text style={styles.taskActionTextWhite}>Complete</Text>
-          </Pressable>
-        </View>
-      )}
     </View>
   );
 }
@@ -282,6 +260,7 @@ async function updateTaskStatus(
 
 export default function CalendarScreen() {
   const { colors, isDark } = useAppTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const { crops } = useUserCrops();
   const { plantingDates, getPlantingDate, loadPlantingDates } = useCropPlantingDates();
@@ -641,7 +620,7 @@ export default function CalendarScreen() {
       time: newTask.time,
       dateKey: selectedDateString,
       riskLevel: selectedRisk,
-      riskLabel: getRiskLabel(selectedRisk),
+      riskLabel: getRiskLabel(selectedRisk, t),
       riskIcon,
       borderColor: getRiskColor(selectedRisk),
       recommendation:
@@ -722,10 +701,10 @@ export default function CalendarScreen() {
         return {
           id: task.id,
           title: task.title,
-          time: "All Day",
+          time: t("calendar.all.day"),
           dateKey: task.date,
           riskLevel: dateRisk,
-          riskLabel: getRiskLabel(dateRisk),
+          riskLabel: getRiskLabel(dateRisk, t),
           riskIcon,
           borderColor: task.calendarColor,
           recommendation,
@@ -764,15 +743,15 @@ export default function CalendarScreen() {
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: "#16a34a" }]} />
-            <Text style={styles.legendText}>Safe</Text>
+            <Text style={styles.legendText}>{t("calendar.safe")}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: "#f59e0b" }]} />
-            <Text style={styles.legendText}>Caution</Text>
+            <Text style={styles.legendText}>{t("calendar.caution")}</Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendDot, { backgroundColor: "#e74c3c" }]} />
-            <Text style={styles.legendText}>High Risk</Text>
+            <Text style={styles.legendText}>{t("calendar.high.risk")}</Text>
           </View>
         </View>
 
@@ -793,10 +772,10 @@ export default function CalendarScreen() {
         <View style={styles.tasksSection}>
           <View style={styles.tasksHeader}>
             <Text style={styles.tasksTitle}>
-              Tasks for {formatDate(selectedDate)}
+              {t("calendar.tasks.for")} {formatDate(selectedDate)}
             </Text>
             {selectedDateRisk === "high-risk" && (
-              <Text style={styles.weatherAlert}>Typhoon Signal #1</Text>
+              <Text style={styles.weatherAlert}>{t("calendar.typhoon.signal")}</Text>
             )}
           </View>
 
@@ -807,38 +786,14 @@ export default function CalendarScreen() {
                 task={task}
                 colors={colors}
                 styles={styles}
-                onComplete={async () => {
-                  if (task.isDailyTask && task.dailyTask) {
-                    await updateTaskStatus(task.dailyTask.id, "Completed");
-                    setDailyTasks((prev) =>
-                      prev.map((t) =>
-                        t.id === task.dailyTask!.id
-                          ? { ...t, status: "Completed" }
-                          : t
-                      )
-                    );
-                  }
-                }}
-                onSkip={async () => {
-                  if (task.isDailyTask && task.dailyTask) {
-                    await updateTaskStatus(task.dailyTask.id, "Skipped");
-                    setDailyTasks((prev) =>
-                      prev.map((t) =>
-                        t.id === task.dailyTask!.id
-                          ? { ...t, status: "Skipped" }
-                          : t
-                      )
-                    );
-                  }
-                }}
               />
             ))
           ) : (
             <View style={styles.emptyTasks}>
-              <Text style={styles.emptyTasksText}>No tasks scheduled</Text>
+              <Text style={styles.emptyTasksText}>{t("calendar.no.tasks")}</Text>
               {crops.filter((c) => c.selected).length === 0 && (
                 <Text style={[styles.emptyTasksText, { marginTop: 8 }]}>
-                  Select crops and set planting dates to see daily tasks
+                  {t("calendar.select.crops")}
                 </Text>
               )}
             </View>
@@ -864,7 +819,7 @@ export default function CalendarScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Create New Task</Text>
+              <Text style={styles.modalTitle}>{t("calendar.create.task")}</Text>
               <Pressable onPress={() => setShowTaskModal(false)}>
                 <MaterialIcons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -872,7 +827,7 @@ export default function CalendarScreen() {
 
             <View style={styles.modalBody}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Task Title</Text>
+                <Text style={styles.inputLabel}>{t("calendar.task.title")}</Text>
                 <TextInput
                   style={styles.input}
                   placeholder="e.g., Fertilizer Application"
@@ -885,7 +840,7 @@ export default function CalendarScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>Time</Text>
+                <Text style={styles.inputLabel}>{t("calendar.time")}</Text>
                 <Pressable
                   style={styles.timeInput}
                   onPress={() => {
@@ -907,7 +862,7 @@ export default function CalendarScreen() {
                       !newTask.time && styles.timeInputPlaceholder,
                     ]}
                   >
-                    {newTask.time || "Select time"}
+                    {newTask.time || t("calendar.select.time")}
                   </Text>
                 </Pressable>
               </View>
@@ -930,7 +885,7 @@ export default function CalendarScreen() {
                 style={styles.cancelButton}
                 onPress={() => setShowTaskModal(false)}
               >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
+                <Text style={styles.cancelButtonText}>{t("common.cancel")}</Text>
               </Pressable>
               <Pressable
                 style={[
@@ -940,7 +895,7 @@ export default function CalendarScreen() {
                 onPress={handleCreateTask}
                 disabled={!newTask.title || !newTask.time}
               >
-                <Text style={styles.createButtonText}>Create Task</Text>
+                <Text style={styles.createButtonText}>{t("calendar.create.task")}</Text>
               </Pressable>
             </View>
           </View>
@@ -958,7 +913,7 @@ export default function CalendarScreen() {
           <View style={styles.timePickerOverlay}>
             <View style={styles.timePickerContent}>
               <View style={styles.timePickerHeader}>
-                <Text style={styles.timePickerTitle}>Select Time</Text>
+                <Text style={styles.timePickerTitle}>{t("calendar.select.time")}</Text>
                 <Pressable onPress={() => setShowTimePicker(false)}>
                   <MaterialIcons name="close" size={24} color={colors.text} />
                 </Pressable>
@@ -980,13 +935,13 @@ export default function CalendarScreen() {
                   style={styles.timePickerCancelButton}
                   onPress={() => setShowTimePicker(false)}
                 >
-                  <Text style={styles.timePickerCancelText}>Cancel</Text>
+                  <Text style={styles.timePickerCancelText}>{t("common.cancel")}</Text>
                 </Pressable>
                 <Pressable
                   style={styles.timePickerConfirmButton}
                   onPress={handleTimePickerConfirm}
                 >
-                  <Text style={styles.timePickerConfirmText}>Confirm</Text>
+                  <Text style={styles.timePickerConfirmText}>{t("common.ok")}</Text>
                 </Pressable>
               </View>
             </View>

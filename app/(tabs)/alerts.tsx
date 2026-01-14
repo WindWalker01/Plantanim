@@ -1,43 +1,43 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
-  Switch,
-  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
-import { DailyForecastItem, fetchWeatherForecast } from "@/lib/weather";
-import { MaterialIcons } from "@expo/vector-icons";
-import {
-  requestNotificationPermissions,
-  areNotificationsEnabled,
-  setNotificationsEnabled,
-  scheduleTaskNotificationsForUpcoming,
-  scheduleSuggestionNotificationsForUrgent,
-  getAllScheduledNotifications,
-  ScheduledNotification,
-  cleanupExpiredNotifications,
-  isExpoGo,
-  areNotificationsSupported,
-} from "@/lib/notifications";
-import { DailyTask, TaskStatus, generateDailyTasks } from "@/lib/daily-tasks";
-import { Suggestion } from "@/lib/weather-suggestions";
-import { useUserCrops } from "@/hooks/use-user-crops";
 import { useCropPlantingDates } from "@/hooks/use-crop-planting-dates";
-import { generateWeatherSuggestions } from "@/lib/weather-suggestions";
+import { useLanguage } from "@/hooks/use-language";
+import { useUserCrops } from "@/hooks/use-user-crops";
+import { DailyTask, TaskStatus, generateDailyTasks } from "@/lib/daily-tasks";
+import {
+  ScheduledNotification,
+  areNotificationsEnabled,
+  areNotificationsSupported,
+  cleanupExpiredNotifications,
+  getAllScheduledNotifications,
+  isExpoGo,
+  requestNotificationPermissions,
+  scheduleSuggestionNotificationsForUrgent,
+  scheduleTaskNotificationsForUpcoming,
+  setNotificationsEnabled,
+} from "@/lib/notifications";
+import { DailyForecastItem, fetchWeatherForecast } from "@/lib/weather";
+import { Suggestion, generateWeatherSuggestions } from "@/lib/weather-suggestions";
+import { MaterialIcons } from "@expo/vector-icons";
 
 type FilterCategory = "all" | "urgent" | "weather" | "farming";
 
-type Alert = {
+type AlertItem = {
   id: string;
   type: "urgent" | "weather" | "farming" | "completed";
   title: string;
@@ -79,8 +79,8 @@ function getIconForTaskType(taskType: string): keyof typeof MaterialIcons.glyphM
   }
 }
 
-// Helper function to format date for display
-function formatAlertDate(date: Date): string {
+// Helper function to format date for display - will use translations in component
+function formatAlertDate(date: Date, t: (key: keyof import("@/constants/translations").Translations) => string): string {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const yesterday = new Date(today);
@@ -92,35 +92,31 @@ function formatAlertDate(date: Date): string {
   dateOnly.setHours(0, 0, 0, 0);
 
   if (dateOnly.getTime() === today.getTime()) {
-    return "Today";
+    return t("alerts.today");
   } else if (dateOnly.getTime() === yesterday.getTime()) {
-    return "Yesterday";
+    return t("alerts.yesterday");
   } else {
     const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     return daysOfWeek[date.getDay()];
   }
 }
 
-const FILTER_CATEGORIES: { key: FilterCategory; label: string }[] = [
-  { key: "all", label: "All" },
-  { key: "urgent", label: "Urgent" },
-  { key: "weather", label: "Weather" },
-  { key: "farming", label: "Farming" },
-];
+// Note: Filter categories will be translated inline using useLanguage hook
 
 export default function AlertsScreen() {
   const { colors, isDark } = useAppTheme();
+  const { t } = useLanguage();
   const router = useRouter();
   const { crops } = useUserCrops();
   const { plantingDates } = useCropPlantingDates();
   const [activeFilter, setActiveFilter] = useState<FilterCategory>("all");
-  const [weatherAlerts, setWeatherAlerts] = useState<Alert[]>([]);
+  const [weatherAlerts, setWeatherAlerts] = useState<AlertItem[]>([]);
   const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
   const [scheduledNotifications, setScheduledNotifications] = useState<ScheduledNotification[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<DailyTask[]>([]);
   const [urgentSuggestions, setUrgentSuggestions] = useState<Suggestion[]>([]);
   const [isExpoGoEnv, setIsExpoGoEnv] = useState(false);
-  const [completedTasks, setCompletedTasks] = useState<Alert[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<AlertItem[]>([]);
 
   // Check if running in Expo Go
   useEffect(() => {
@@ -139,7 +135,7 @@ export default function AlertsScreen() {
 
         const enabled = await areNotificationsEnabled();
         setNotificationsEnabledState(enabled);
-        
+
         if (enabled) {
           const hasPermission = await requestNotificationPermissions();
           if (!hasPermission && !isExpoGo()) {
@@ -182,7 +178,7 @@ export default function AlertsScreen() {
         // Generate tasks for all crops
         const allTasks: DailyTask[] = [];
         const selectedCrops = crops.filter((c) => c.selected);
-        
+
         for (const crop of selectedCrops) {
           const dates = plantingDates.filter((pd) => pd.cropId === crop.id);
           for (const pd of dates) {
@@ -201,10 +197,10 @@ export default function AlertsScreen() {
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         const todayStr = today.toISOString().split("T")[0];
         const tomorrowStr = tomorrow.toISOString().split("T")[0];
-        
+
         const upcoming = allTasks.filter(
           (task) =>
             (task.date === todayStr || task.date === tomorrowStr) &&
@@ -218,7 +214,7 @@ export default function AlertsScreen() {
         const location = locationJson
           ? JSON.parse(locationJson)
           : { municipality: "Balanga City" };
-        
+
         const tasksJson = await AsyncStorage.getItem("@plantanim:calendar_tasks");
         const tasks = tasksJson ? JSON.parse(tasksJson) : [];
 
@@ -255,7 +251,7 @@ export default function AlertsScreen() {
         if (notificationsEnabled) {
           await scheduleTaskNotificationsForUpcoming(upcoming);
           await scheduleSuggestionNotificationsForUrgent(urgent);
-          
+
           // Reload scheduled notifications
           const notifications = await getAllScheduledNotifications();
           setScheduledNotifications(notifications);
@@ -273,8 +269,8 @@ export default function AlertsScreen() {
   useEffect(() => {
     let isMounted = true;
 
-    const buildWeatherAlerts = (daily: DailyForecastItem[]): Alert[] => {
-      const alerts: Alert[] = [];
+    const buildWeatherAlerts = (daily: DailyForecastItem[]): AlertItem[] => {
+      const alerts: AlertItem[] = [];
 
       if (!daily || daily.length === 0) {
         return alerts;
@@ -375,7 +371,7 @@ export default function AlertsScreen() {
         // Generate all tasks for all crops
         const allTasks: DailyTask[] = [];
         const selectedCrops = crops.filter((c) => c.selected);
-        
+
         for (const crop of selectedCrops) {
           const dates = plantingDates.filter((pd) => pd.cropId === crop.id);
           for (const pd of dates) {
@@ -398,7 +394,7 @@ export default function AlertsScreen() {
         const weekAgo = new Date(today);
         weekAgo.setDate(weekAgo.getDate() - 7);
 
-        const completedAlerts: Alert[] = [];
+        const completedAlerts: AlertItem[] = [];
         for (const task of allTasks) {
           const taskStatus = statuses[task.id];
           if (taskStatus === "Completed") {
@@ -409,7 +405,7 @@ export default function AlertsScreen() {
                 id: task.id,
                 type: "completed",
                 title: task.title,
-                timestamp: formatAlertDate(taskDate),
+                timestamp: formatAlertDate(taskDate, t),
                 icon: getIconForTaskType(task.taskType),
                 iconColor: "#16a34a",
                 iconBg: "#dcfce7",
@@ -429,9 +425,9 @@ export default function AlertsScreen() {
             _sortDate: task ? new Date(task.date + "T00:00:00") : new Date(0),
           };
         });
-        
+
         alertsWithDates.sort((a, b) => b._sortDate.getTime() - a._sortDate.getTime());
-        
+
         // Remove the temporary _sortDate property
         const sortedAlerts = alertsWithDates.map(({ _sortDate, ...alert }) => alert);
 
@@ -476,7 +472,7 @@ export default function AlertsScreen() {
           >
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
-          <Text style={styles.screenTitle}>Alerts & Notifications</Text>
+          <Text style={styles.screenTitle}>{t("alerts.title")}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -485,7 +481,7 @@ export default function AlertsScreen() {
           <View style={styles.notificationHeader}>
             <View style={styles.notificationHeaderLeft}>
               <MaterialIcons name="notifications" size={24} color={colors.tint} />
-              <Text style={styles.notificationModuleTitle}>Notifications</Text>
+              <Text style={styles.notificationModuleTitle}>{t("alerts.notifications")}</Text>
             </View>
             <Switch
               value={notificationsEnabled && !isExpoGoEnv}
@@ -522,21 +518,21 @@ export default function AlertsScreen() {
               <MaterialIcons name="info" size={20} color="#f59e0b" />
               <View style={styles.expoGoWarningText}>
                 <Text style={styles.expoGoWarningTitle}>
-                  Notifications Not Available in Expo Go
+                  {t("alerts.expo.warning.title")}
                 </Text>
                 <Text style={styles.expoGoWarningBody}>
-                  Push notifications require a development build. Use "npx expo prebuild" and "npx expo run:android" to create one.
+                  {t("alerts.expo.warning.body")}
                 </Text>
               </View>
             </View>
           )}
-          
+
           {!isExpoGoEnv && notificationsEnabled && (
             <View style={styles.notificationStats}>
               <View style={styles.statItem}>
                 <MaterialIcons name="schedule" size={20} color={colors.tint} />
                 <Text style={styles.statText}>
-                  {scheduledNotifications.length} scheduled
+                  {scheduledNotifications.length} {t("alerts.stats.scheduled").toLowerCase()}
                 </Text>
               </View>
               <View style={styles.statItem}>
@@ -556,14 +552,19 @@ export default function AlertsScreen() {
 
           {!isExpoGoEnv && !notificationsEnabled && (
             <Text style={styles.notificationHint}>
-              Enable notifications to receive reminders for farming tasks and urgent alerts
+              {t("alerts.hint")}
             </Text>
           )}
         </View>
 
         {/* Category Filters */}
         <View style={styles.categoryRow}>
-          {FILTER_CATEGORIES.map((cat) => {
+          {([
+            { key: "all" as FilterCategory, labelKey: "alerts.all" },
+            { key: "urgent" as FilterCategory, labelKey: "alerts.urgent" },
+            { key: "weather" as FilterCategory, labelKey: "alerts.weather" },
+            { key: "farming" as FilterCategory, labelKey: "alerts.farming" },
+          ]).map((cat) => {
             const isActive = activeFilter === cat.key;
             return (
               <Pressable
@@ -588,7 +589,7 @@ export default function AlertsScreen() {
                     isActive && styles.categoryLabelActive,
                   ]}
                 >
-                  {cat.label}
+                  {t(cat.labelKey as keyof import("@/constants/translations").Translations)}
                 </Text>
               </Pressable>
             );
@@ -598,14 +599,14 @@ export default function AlertsScreen() {
         {/* Alerts List */}
         <View style={styles.alertsList}>
           {filteredAlerts.map((alert) => (
-            <AlertCard key={alert.id} alert={alert} theme={colors} styles={styles} isDark={isDark} />
+            <AlertCard key={alert.id} alert={alert} theme={colors} styles={styles} isDark={isDark} t={t} />
           ))}
         </View>
 
         {/* Earlier This Week Section */}
         {completedTasks.length > 0 && (
           <View style={styles.completedSection}>
-            <Text style={styles.sectionLabel}>EARLIER THIS WEEK</Text>
+            <Text style={styles.sectionLabel}>{t("alerts.earlier.week")}</Text>
             {completedTasks.map((alert) => (
               <CompletedAlertCard
                 key={alert.id}
@@ -627,14 +628,16 @@ function AlertCard({
   theme,
   styles,
   isDark,
+  t,
 }: {
-  alert: Alert;
+  alert: AlertItem;
   theme: Theme;
   styles: ReturnType<typeof createStyles>;
   isDark?: boolean;
+  t: (key: keyof import("@/constants/translations").Translations) => string;
 }) {
   if (alert.type === "urgent") {
-    return <UrgentAlertCard alert={alert} theme={theme} styles={styles} isDark={isDark} />;
+    return <UrgentAlertCard alert={alert} theme={theme} styles={styles} isDark={isDark} t={t} />;
   }
 
   if (alert.type === "farming") {
@@ -649,11 +652,13 @@ function UrgentAlertCard({
   theme,
   styles,
   isDark,
+  t,
 }: {
-  alert: Alert;
+  alert: AlertItem;
   theme: Theme;
   styles: ReturnType<typeof createStyles>;
   isDark?: boolean;
+  t: (key: keyof import("@/constants/translations").Translations) => string;
 }) {
   return (
     <View style={styles.urgentCard}>
@@ -670,7 +675,7 @@ function UrgentAlertCard({
             <Image source={{ uri: alert.image }} style={styles.urgentImage} />
             <View style={styles.liveBadge}>
               <View style={styles.liveDot} />
-              <Text style={styles.liveText}>LIVE TRACKING</Text>
+              <Text style={styles.liveText}>{t("alerts.live.tracking")}</Text>
             </View>
           </View>
         )}
@@ -697,7 +702,7 @@ function FarmingAlertCard({
   styles,
   isDark,
 }: {
-  alert: Alert;
+  alert: AlertItem;
   theme: Theme;
   styles: ReturnType<typeof createStyles>;
   isDark?: boolean;
@@ -756,7 +761,7 @@ function SimpleAlertCard({
   styles,
   isDark,
 }: {
-  alert: Alert;
+  alert: AlertItem;
   theme: Theme;
   styles: ReturnType<typeof createStyles>;
   isDark?: boolean;
@@ -802,7 +807,7 @@ function CompletedAlertCard({
   styles,
   isDark,
 }: {
-  alert: Alert;
+  alert: AlertItem;
   theme: Theme;
   styles: ReturnType<typeof createStyles>;
   isDark?: boolean;
