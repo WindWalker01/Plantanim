@@ -120,14 +120,10 @@ function TaskCard({
   task,
   colors,
   styles,
-  onComplete,
-  onSkip,
 }: {
   task: Task;
   colors: Theme;
   styles: ReturnType<typeof createStyles>;
-  onComplete: () => void;
-  onSkip: () => void;
 }) {
   const isCompleted = task.isDailyTask && task.dailyTask?.status === "Completed";
   const isSkipped = task.isDailyTask && task.dailyTask?.status === "Skipped";
@@ -207,26 +203,6 @@ function TaskCard({
           </Text>
         )}
       </View>
-      {task.isDailyTask && !isCompleted && !isSkipped && (
-        <View style={styles.taskActions}>
-          <Pressable
-            style={[styles.taskActionButton, styles.skipButton]}
-            onPress={onSkip}
-          >
-            <MaterialIcons name="cancel" size={16} color={colors.textSubtle} />
-            <Text style={[styles.taskActionText, { color: colors.textSubtle }]}>
-              Skip
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.taskActionButton, styles.completeButton]}
-            onPress={onComplete}
-          >
-            <MaterialIcons name="check" size={16} color="#fff" />
-            <Text style={styles.taskActionTextWhite}>Complete</Text>
-          </Pressable>
-        </View>
-      )}
     </View>
   );
 }
@@ -807,30 +783,6 @@ export default function CalendarScreen() {
                 task={task}
                 colors={colors}
                 styles={styles}
-                onComplete={async () => {
-                  if (task.isDailyTask && task.dailyTask) {
-                    await updateTaskStatus(task.dailyTask.id, "Completed");
-                    setDailyTasks((prev) =>
-                      prev.map((t) =>
-                        t.id === task.dailyTask!.id
-                          ? { ...t, status: "Completed" }
-                          : t
-                      )
-                    );
-                  }
-                }}
-                onSkip={async () => {
-                  if (task.isDailyTask && task.dailyTask) {
-                    await updateTaskStatus(task.dailyTask.id, "Skipped");
-                    setDailyTasks((prev) =>
-                      prev.map((t) =>
-                        t.id === task.dailyTask!.id
-                          ? { ...t, status: "Skipped" }
-                          : t
-                      )
-                    );
-                  }
-                }}
               />
             ))
           ) : (
