@@ -7,13 +7,32 @@ import {
   StyleSheet,
   Text,
   View,
+  Switch,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
 import { DailyForecastItem, fetchWeatherForecast } from "@/lib/weather";
 import { MaterialIcons } from "@expo/vector-icons";
+import {
+  requestNotificationPermissions,
+  areNotificationsEnabled,
+  setNotificationsEnabled,
+  scheduleTaskNotificationsForUpcoming,
+  scheduleSuggestionNotificationsForUrgent,
+  getAllScheduledNotifications,
+  ScheduledNotification,
+  cleanupExpiredNotifications,
+} from "@/lib/notifications";
+import { DailyTask } from "@/lib/daily-tasks";
+import { Suggestion } from "@/lib/weather-suggestions";
+import { useUserCrops } from "@/hooks/use-user-crops";
+import { useCropPlantingDates } from "@/hooks/use-crop-planting-dates";
+import { generateDailyTasks } from "@/lib/daily-tasks";
+import { generateWeatherSuggestions } from "@/lib/weather-suggestions";
 
 type FilterCategory = "all" | "urgent" | "weather" | "farming";
 
@@ -81,8 +100,14 @@ const FILTER_CATEGORIES: { key: FilterCategory; label: string }[] = [
 export default function AlertsScreen() {
   const { colors, isDark } = useAppTheme();
   const router = useRouter();
+  const { crops } = useUserCrops();
+  const { plantingDates } = useCropPlantingDates();
   const [activeFilter, setActiveFilter] = useState<FilterCategory>("all");
   const [weatherAlerts, setWeatherAlerts] = useState<Alert[]>([]);
+  const [notificationsEnabled, setNotificationsEnabledState] = useState(true);
+  const [scheduledNotifications, setScheduledNotifications] = useState<ScheduledNotification[]>([]);
+  const [upcomingTasks, setUpcomingTasks] = useState<DailyTask[]>([]);
+  const [urgentSuggestions, setUrgentSuggestions] = useState<Suggestion[]>([]);
   const baseFarmingAlerts = useMemo(
     () => ALERTS.filter((alert) => alert.type === "farming"),
     [],
@@ -91,6 +116,143 @@ export default function AlertsScreen() {
     () => ALERTS.filter((alert) => alert.type === "completed"),
     [],
   );
+
+  // Load notification settings and permissions
+  useEffect(() => {
+    const loadNotificationSettings = async () => {
+      try {
+        const enabled = await areNotificationsEnabled();
+        setNotificationsEnabledState(enabled);
+        
+        if (enabled) {
+          const hasPermission = await requestNotificationPermissions();
+          if (!hasPermission) {
+            Alert.alert(
+              "Notification Permission",
+              "Please enable notifications in your device settings to receive farming reminders.",
+              [{ text: "OK" }]
+            );
+          }
+        }
+      } catch (error) {
+        console.error("Error loading notification settings:", error);
+      }
+    };
+
+    loadNotificationSettings();
+  }, []);
+
+  // Load scheduled notifications
+  useEffect(() => {
+    const loadScheduledNotifications = async () => {
+      try {
+        await cleanupExpiredNotifications();
+        const notifications = await getAllScheduledNotifications();
+        setScheduledNotifications(notifications);
+      } catch (error) {
+        console.error("Error loading scheduled notifications:", error);
+      }
+    };
+
+    if (notificationsEnabled) {
+      loadScheduledNotifications();
+    }
+  }, [notificationsEnabled]);
+
+  // Load tasks and suggestions for notification scheduling
+  useEffect(() => {
+    const loadTasksAndSuggestions = async () => {
+      try {
+        // Generate tasks for all crops
+        const allTasks: DailyTask[] = [];
+        const selectedCrops = crops.filter((c) => c.selected);
+        
+        for (const crop of selectedCrops) {
+          const dates = plantingDates.filter((pd) => pd.cropId === crop.id);
+          for (const pd of dates) {
+            const tasks = generateDailyTasks(
+              crop.id,
+              new Date(pd.plantingDate),
+              new Date(),
+              7 // Look ahead 7 days
+            );
+            allTasks.push(...tasks);
+          }
+        }
+
+        // Filter for today and tomorrow
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const todayStr = today.toISOString().split("T")[0];
+        const tomorrowStr = tomorrow.toISOString().split("T")[0];
+        
+        const upcoming = allTasks.filter(
+          (task) =>
+            (task.date === todayStr || task.date === tomorrowStr) &&
+            task.status === "Pending"
+        );
+        setUpcomingTasks(upcoming);
+
+        // Generate weather suggestions
+        const { daily, currentWeather } = await fetchWeatherForecast();
+        const locationJson = await AsyncStorage.getItem("@plantanim:user_location");
+        const location = locationJson
+          ? JSON.parse(locationJson)
+          : { municipality: "Balanga City" };
+        
+        const tasksJson = await AsyncStorage.getItem("@plantanim:calendar_tasks");
+        const tasks = tasksJson ? JSON.parse(tasksJson) : [];
+
+        const suggestions = generateWeatherSuggestions(
+          {
+            currentWeather,
+            dailyForecast: daily,
+            typhoonAlert: false,
+            rainVolumeMm: undefined,
+          },
+          {
+            municipality: location.municipality || "Balanga City",
+            barangay: location.barangay,
+          },
+          {
+            selectedCropIds: selectedCrops.map((c) => c.id),
+          },
+          {
+            tasks: tasks.map((t: any) => ({
+              id: t.id,
+              title: t.title,
+              dateKey: t.dateKey,
+              taskType: t.taskType,
+            })),
+          }
+        );
+
+        const urgent = suggestions.filter(
+          (s) => s.priority === "HIGH" && new Date(s.validUntil) >= new Date()
+        );
+        setUrgentSuggestions(urgent);
+
+        // Schedule notifications if enabled
+        if (notificationsEnabled) {
+          await scheduleTaskNotificationsForUpcoming(upcoming);
+          await scheduleSuggestionNotificationsForUrgent(urgent);
+          
+          // Reload scheduled notifications
+          const notifications = await getAllScheduledNotifications();
+          setScheduledNotifications(notifications);
+        }
+      } catch (error) {
+        console.error("Error loading tasks and suggestions:", error);
+      }
+    };
+
+    if (notificationsEnabled && crops.length > 0) {
+      loadTasksAndSuggestions();
+    }
+  }, [notificationsEnabled, crops, plantingDates]);
 
   useEffect(() => {
     let isMounted = true;
@@ -219,6 +381,64 @@ export default function AlertsScreen() {
           </Pressable>
           <Text style={styles.screenTitle}>Alerts & Notifications</Text>
           <View style={styles.placeholder} />
+        </View>
+
+        {/* Notification Module */}
+        <View style={styles.notificationModule}>
+          <View style={styles.notificationHeader}>
+            <View style={styles.notificationHeaderLeft}>
+              <MaterialIcons name="notifications" size={24} color={colors.tint} />
+              <Text style={styles.notificationModuleTitle}>Notifications</Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={async (value) => {
+                setNotificationsEnabledState(value);
+                await setNotificationsEnabled(value);
+                if (value) {
+                  const hasPermission = await requestNotificationPermissions();
+                  if (!hasPermission) {
+                    Alert.alert(
+                      "Permission Required",
+                      "Please enable notifications in your device settings.",
+                      [{ text: "OK" }]
+                    );
+                  }
+                }
+              }}
+              trackColor={{ false: colors.icon + "33", true: colors.tint + "80" }}
+              thumbColor={notificationsEnabled ? colors.tint : colors.icon}
+            />
+          </View>
+          
+          {notificationsEnabled && (
+            <View style={styles.notificationStats}>
+              <View style={styles.statItem}>
+                <MaterialIcons name="schedule" size={20} color={colors.tint} />
+                <Text style={styles.statText}>
+                  {scheduledNotifications.length} scheduled
+                </Text>
+              </View>
+              <View style={styles.statItem}>
+                <MaterialIcons name="task" size={20} color="#16a34a" />
+                <Text style={styles.statText}>
+                  {upcomingTasks.length} tasks
+                </Text>
+              </View>
+              <View style={styles.statItem}>
+                <MaterialIcons name="warning" size={20} color="#e74c3c" />
+                <Text style={styles.statText}>
+                  {urgentSuggestions.length} alerts
+                </Text>
+              </View>
+            </View>
+          )}
+
+          {!notificationsEnabled && (
+            <Text style={styles.notificationHint}>
+              Enable notifications to receive reminders for farming tasks and urgent alerts
+            </Text>
+          )}
         </View>
 
         {/* Category Filters */}
@@ -786,5 +1006,49 @@ const createStyles = (theme: Theme, isDark: boolean) =>
     completedTimestamp: {
       fontSize: 14,
       color: theme.textSubtle,
+    },
+    notificationModule: {
+      borderRadius: 16,
+      backgroundColor: theme.surface,
+      padding: 16,
+      marginBottom: 20,
+      borderWidth: 1,
+      borderColor: theme.icon + "22",
+    },
+    notificationHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginBottom: 12,
+    },
+    notificationHeaderLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    notificationModuleTitle: {
+      fontSize: 18,
+      fontWeight: "800",
+      color: theme.text,
+    },
+    notificationStats: {
+      flexDirection: "row",
+      gap: 16,
+      flexWrap: "wrap",
+    },
+    statItem: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    },
+    statText: {
+      fontSize: 14,
+      fontWeight: "600",
+      color: theme.text,
+    },
+    notificationHint: {
+      fontSize: 14,
+      color: theme.textSubtle,
+      lineHeight: 20,
     },
   });
