@@ -14,20 +14,20 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useLanguage } from "@/hooks/use-language";
 
 const NOTIFICATIONS_KEY = "@plantanim:notifications_enabled";
 const LOCATION_KEY = "@plantanim:user_location";
-const LANGUAGE_KEY = "@plantanim:language";
 
 export default function SettingsScreen() {
   const { colors, isDark } = useAppTheme();
+  const { language, setLanguage, t, languageName } = useLanguage();
   const router = useRouter();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [userLocation, setUserLocation] = useState<{
     municipality: string;
     barangay: string;
   } | null>(null);
-  const [language, setLanguage] = useState("English (US)");
 
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
 
@@ -47,12 +47,6 @@ export default function SettingsScreen() {
       const locationJson = await AsyncStorage.getItem(LOCATION_KEY);
       if (locationJson) {
         setUserLocation(JSON.parse(locationJson));
-      }
-
-      // Load language
-      const savedLanguage = await AsyncStorage.getItem(LANGUAGE_KEY);
-      if (savedLanguage) {
-        setLanguage(savedLanguage);
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -77,16 +71,9 @@ export default function SettingsScreen() {
   };
 
   const handleLanguage = () => {
-    // In a real app, this would open a language selection modal
-    // For now, just toggle between English and Filipino
-    const newLanguage = language === "English (US)" ? "Filipino" : "English (US)";
+    // Toggle between English and Filipino
+    const newLanguage = language === "en" ? "tl" : "en";
     setLanguage(newLanguage);
-    AsyncStorage.setItem(LANGUAGE_KEY, newLanguage);
-  };
-
-  const handleHelpCenter = () => {
-    // Navigate to help center or open modal
-    // For now, just show an alert or navigate to a help screen
   };
 
   const displayLocation = userLocation
@@ -102,7 +89,7 @@ export default function SettingsScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.placeholder} />
-          <Text style={styles.screenTitle}>Profile & Settings</Text>
+          <Text style={styles.screenTitle}>{t("settings.title")}</Text>
           <View style={styles.placeholder} />
         </View>
 
@@ -121,12 +108,12 @@ export default function SettingsScreen() {
             <MaterialIcons name="place" size={16} color={colors.textSubtle} />
             <Text style={styles.locationText}>{displayLocation}</Text>
           </View>
-          <Text style={styles.farmerId}>Farmer ID: 2024-PLNT-001</Text>
+          <Text style={styles.farmerId}>{t("settings.farmer.id")} 2024-PLNT-001</Text>
         </View>
 
         {/* Farming Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>FARMING SETTINGS</Text>
+          <Text style={styles.sectionTitle}>{t("settings.farming.settings")}</Text>
           <View style={styles.sectionCard}>
             <Pressable
               style={styles.settingRow}
@@ -135,7 +122,7 @@ export default function SettingsScreen() {
               <View style={styles.iconContainer}>
                 <MaterialIcons name="map" size={20} color={colors.text} />
               </View>
-              <Text style={styles.settingText}>Update My Location</Text>
+              <Text style={styles.settingText}>{t("settings.update.location")}</Text>
               <MaterialIcons
                 name="chevron-right"
                 size={24}
@@ -152,7 +139,7 @@ export default function SettingsScreen() {
               <View style={styles.iconContainer}>
                 <MaterialIcons name="eco" size={20} color={colors.text} />
               </View>
-              <Text style={styles.settingText}>Manage My Crops</Text>
+              <Text style={styles.settingText}>{t("settings.manage.crops")}</Text>
               <MaterialIcons
                 name="chevron-right"
                 size={24}
@@ -164,7 +151,7 @@ export default function SettingsScreen() {
 
         {/* Preferences Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PREFERENCES</Text>
+          <Text style={styles.sectionTitle}>{t("settings.preferences")}</Text>
           <View style={styles.sectionCard}>
             <View style={styles.settingRow}>
               <View style={styles.iconContainer}>
@@ -175,7 +162,7 @@ export default function SettingsScreen() {
                   )}
                 </View>
               </View>
-              <Text style={styles.settingText}>Notifications</Text>
+              <Text style={styles.settingText}>{t("settings.notifications")}</Text>
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleNotificationsToggle}
@@ -191,23 +178,9 @@ export default function SettingsScreen() {
                 <MaterialIcons name="language" size={20} color={colors.text} />
               </View>
               <View style={styles.languageContainer}>
-                <Text style={styles.settingText}>Language</Text>
-                <Text style={styles.languageValue}>{language}</Text>
+                <Text style={styles.settingText}>{t("settings.language")}</Text>
+                <Text style={styles.languageValue}>{languageName}</Text>
               </View>
-              <MaterialIcons
-                name="chevron-right"
-                size={24}
-                color={colors.textSubtle}
-              />
-            </Pressable>
-
-            <View style={styles.divider} />
-
-            <Pressable style={styles.settingRow} onPress={handleHelpCenter}>
-              <View style={styles.iconContainer}>
-                <MaterialIcons name="help-outline" size={20} color={colors.text} />
-              </View>
-              <Text style={styles.settingText}>Help Center</Text>
               <MaterialIcons
                 name="chevron-right"
                 size={24}
@@ -218,7 +191,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Version Info */}
-        <Text style={styles.versionText}>Plantanim v2.4.1 (2024)</Text>
+        <Text style={styles.versionText}>{t("settings.version")}</Text>
       </ScrollView>
     </SafeAreaView>
   );
