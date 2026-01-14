@@ -139,7 +139,7 @@ export default function AlertsScreen() {
 
         const enabled = await areNotificationsEnabled();
         setNotificationsEnabledState(enabled);
-        
+
         if (enabled) {
           const hasPermission = await requestNotificationPermissions();
           if (!hasPermission && !isExpoGo()) {
@@ -182,7 +182,7 @@ export default function AlertsScreen() {
         // Generate tasks for all crops
         const allTasks: DailyTask[] = [];
         const selectedCrops = crops.filter((c) => c.selected);
-        
+
         for (const crop of selectedCrops) {
           const dates = plantingDates.filter((pd) => pd.cropId === crop.id);
           for (const pd of dates) {
@@ -201,10 +201,10 @@ export default function AlertsScreen() {
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         const todayStr = today.toISOString().split("T")[0];
         const tomorrowStr = tomorrow.toISOString().split("T")[0];
-        
+
         const upcoming = allTasks.filter(
           (task) =>
             (task.date === todayStr || task.date === tomorrowStr) &&
@@ -218,7 +218,7 @@ export default function AlertsScreen() {
         const location = locationJson
           ? JSON.parse(locationJson)
           : { municipality: "Balanga City" };
-        
+
         const tasksJson = await AsyncStorage.getItem("@plantanim:calendar_tasks");
         const tasks = tasksJson ? JSON.parse(tasksJson) : [];
 
@@ -255,7 +255,7 @@ export default function AlertsScreen() {
         if (notificationsEnabled) {
           await scheduleTaskNotificationsForUpcoming(upcoming);
           await scheduleSuggestionNotificationsForUrgent(urgent);
-          
+
           // Reload scheduled notifications
           const notifications = await getAllScheduledNotifications();
           setScheduledNotifications(notifications);
@@ -375,7 +375,7 @@ export default function AlertsScreen() {
         // Generate all tasks for all crops
         const allTasks: DailyTask[] = [];
         const selectedCrops = crops.filter((c) => c.selected);
-        
+
         for (const crop of selectedCrops) {
           const dates = plantingDates.filter((pd) => pd.cropId === crop.id);
           for (const pd of dates) {
@@ -429,9 +429,9 @@ export default function AlertsScreen() {
             _sortDate: task ? new Date(task.date + "T00:00:00") : new Date(0),
           };
         });
-        
+
         alertsWithDates.sort((a, b) => b._sortDate.getTime() - a._sortDate.getTime());
-        
+
         // Remove the temporary _sortDate property
         const sortedAlerts = alertsWithDates.map(({ _sortDate, ...alert }) => alert);
 
@@ -530,7 +530,7 @@ export default function AlertsScreen() {
               </View>
             </View>
           )}
-          
+
           {!isExpoGoEnv && notificationsEnabled && (
             <View style={styles.notificationStats}>
               <View style={styles.statItem}>
