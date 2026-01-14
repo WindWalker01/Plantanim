@@ -8,17 +8,24 @@
 
 import * as Notifications from "expo-notifications";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import { DailyTask } from "./daily-tasks";
 import { Suggestion } from "./weather-suggestions";
 
 // Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Note: This will fail silently in Expo Go, which is expected
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+} catch (error) {
+  // Silently fail if notifications aren't supported (e.g., in Expo Go)
+  // This is expected behavior and will be handled by the isExpoGo() checks
+}
 
 const NOTIFICATION_STORAGE_KEY = "@plantanim:scheduled_notifications";
 const NOTIFICATION_ENABLED_KEY = "@plantanim:notifications_enabled";
@@ -33,10 +40,31 @@ export interface ScheduledNotification {
 }
 
 /**
+ * Check if running in Expo Go
+ * Expo Go doesn't support push notifications in SDK 53+
+ */
+export function isExpoGo(): boolean {
+  return Constants.executionEnvironment === "storeClient";
+}
+
+/**
+ * Check if notifications are supported in the current environment
+ */
+export function areNotificationsSupported(): boolean {
+  return !isExpoGo();
+}
+
+/**
  * Request notification permissions
  */
 export async function requestNotificationPermissions(): Promise<boolean> {
   try {
+    // Check if we're in Expo Go - notifications not supported
+    if (isExpoGo()) {
+      console.warn("Notifications are not supported in Expo Go. Use a development build instead.");
+      return false;
+    }
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
 
@@ -88,6 +116,12 @@ export async function scheduleTaskNotification(
   notificationTime?: Date
 ): Promise<string | null> {
   try {
+    // Check if notifications are supported
+    if (!areNotificationsSupported()) {
+      console.warn("Notifications not supported in Expo Go. Use a development build.");
+      return null;
+    }
+
     const enabled = await areNotificationsEnabled();
     if (!enabled) {
       return null;
@@ -151,6 +185,12 @@ export async function scheduleSuggestionNotification(
   notificationTime?: Date
 ): Promise<string | null> {
   try {
+    // Check if notifications are supported
+    if (!areNotificationsSupported()) {
+      console.warn("Notifications not supported in Expo Go. Use a development build.");
+      return null;
+    }
+
     const enabled = await areNotificationsEnabled();
     if (!enabled) {
       return null;

@@ -26,6 +26,8 @@ import {
   getAllScheduledNotifications,
   ScheduledNotification,
   cleanupExpiredNotifications,
+  isExpoGo,
+  areNotificationsSupported,
 } from "@/lib/notifications";
 import { DailyTask } from "@/lib/daily-tasks";
 import { Suggestion } from "@/lib/weather-suggestions";
@@ -108,6 +110,7 @@ export default function AlertsScreen() {
   const [scheduledNotifications, setScheduledNotifications] = useState<ScheduledNotification[]>([]);
   const [upcomingTasks, setUpcomingTasks] = useState<DailyTask[]>([]);
   const [urgentSuggestions, setUrgentSuggestions] = useState<Suggestion[]>([]);
+  const [isExpoGoEnv, setIsExpoGoEnv] = useState(false);
   const baseFarmingAlerts = useMemo(
     () => ALERTS.filter((alert) => alert.type === "farming"),
     [],
@@ -117,16 +120,27 @@ export default function AlertsScreen() {
     [],
   );
 
+  // Check if running in Expo Go
+  useEffect(() => {
+    setIsExpoGoEnv(isExpoGo());
+  }, []);
+
   // Load notification settings and permissions
   useEffect(() => {
     const loadNotificationSettings = async () => {
       try {
+        // Check if notifications are supported
+        if (!areNotificationsSupported()) {
+          setNotificationsEnabledState(false);
+          return;
+        }
+
         const enabled = await areNotificationsEnabled();
         setNotificationsEnabledState(enabled);
         
         if (enabled) {
           const hasPermission = await requestNotificationPermissions();
-          if (!hasPermission) {
+          if (!hasPermission && !isExpoGo()) {
             Alert.alert(
               "Notification Permission",
               "Please enable notifications in your device settings to receive farming reminders.",
@@ -391,8 +405,16 @@ export default function AlertsScreen() {
               <Text style={styles.notificationModuleTitle}>Notifications</Text>
             </View>
             <Switch
-              value={notificationsEnabled}
+              value={notificationsEnabled && !isExpoGoEnv}
               onValueChange={async (value) => {
+                if (isExpoGoEnv) {
+                  Alert.alert(
+                    "Development Build Required",
+                    "Push notifications are not available in Expo Go (SDK 53+). To use notifications, please create a development build:\n\n1. Run: npx expo prebuild\n2. Run: npx expo run:android (or run:ios)\n\nOr use EAS Build to create a development build.",
+                    [{ text: "OK" }]
+                  );
+                  return;
+                }
                 setNotificationsEnabledState(value);
                 await setNotificationsEnabled(value);
                 if (value) {
@@ -407,11 +429,26 @@ export default function AlertsScreen() {
                 }
               }}
               trackColor={{ false: colors.icon + "33", true: colors.tint + "80" }}
-              thumbColor={notificationsEnabled ? colors.tint : colors.icon}
+              thumbColor={notificationsEnabled && !isExpoGoEnv ? colors.tint : colors.icon}
+              disabled={isExpoGoEnv}
             />
           </View>
+
+          {isExpoGoEnv && (
+            <View style={styles.expoGoWarning}>
+              <MaterialIcons name="info" size={20} color="#f59e0b" />
+              <View style={styles.expoGoWarningText}>
+                <Text style={styles.expoGoWarningTitle}>
+                  Notifications Not Available in Expo Go
+                </Text>
+                <Text style={styles.expoGoWarningBody}>
+                  Push notifications require a development build. Use "npx expo prebuild" and "npx expo run:android" to create one.
+                </Text>
+              </View>
+            </View>
+          )}
           
-          {notificationsEnabled && (
+          {!isExpoGoEnv && notificationsEnabled && (
             <View style={styles.notificationStats}>
               <View style={styles.statItem}>
                 <MaterialIcons name="schedule" size={20} color={colors.tint} />
@@ -434,7 +471,7 @@ export default function AlertsScreen() {
             </View>
           )}
 
-          {!notificationsEnabled && (
+          {!isExpoGoEnv && !notificationsEnabled && (
             <Text style={styles.notificationHint}>
               Enable notifications to receive reminders for farming tasks and urgent alerts
             </Text>
@@ -1050,5 +1087,29 @@ const createStyles = (theme: Theme, isDark: boolean) =>
       fontSize: 14,
       color: theme.textSubtle,
       lineHeight: 20,
+    },
+    expoGoWarning: {
+      flexDirection: "row",
+      gap: 12,
+      padding: 12,
+      borderRadius: 12,
+      backgroundColor: isDark ? "#78350f33" : "#fef3c7",
+      borderWidth: 1,
+      borderColor: "#f59e0b33",
+      marginTop: 8,
+    },
+    expoGoWarningText: {
+      flex: 1,
+      gap: 4,
+    },
+    expoGoWarningTitle: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: "#f59e0b",
+    },
+    expoGoWarningBody: {
+      fontSize: 13,
+      color: theme.textSubtle,
+      lineHeight: 18,
     },
   });
