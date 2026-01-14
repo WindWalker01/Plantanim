@@ -55,6 +55,14 @@ export interface Translations {
   "calendar.no.tasks": string;
   "calendar.complete": string;
   "calendar.skip": string;
+  "calendar.tasks.for": string;
+  "calendar.typhoon.signal": string;
+  "calendar.select.crops": string;
+  "calendar.create.task": string;
+  "calendar.task.title": string;
+  "calendar.time": string;
+  "calendar.select.time": string;
+  "calendar.all.day": string;
 
   // Login Screen
   "login.welcome": string;
@@ -155,13 +163,21 @@ export const translations: Record<Language, Translations> = {
     "alerts.stats.today": "Today",
     "alerts.stats.week": "This Week",
     "alerts.hint": "Enable notifications to receive timely alerts for your crops and weather conditions.",
-    "calendar.title": "Calendar",
+    "calendar.title": "Farming Calendar",
     "calendar.safe": "Safe",
     "calendar.caution": "Caution",
     "calendar.high.risk": "High Risk",
-    "calendar.no.tasks": "No tasks scheduled for this day.",
+    "calendar.no.tasks": "No tasks scheduled",
     "calendar.complete": "Complete",
     "calendar.skip": "Skip",
+    "calendar.tasks.for": "Tasks for",
+    "calendar.typhoon.signal": "Typhoon Signal #1",
+    "calendar.select.crops": "Select crops and set planting dates to see daily tasks",
+    "calendar.create.task": "Create New Task",
+    "calendar.task.title": "Task Title",
+    "calendar.time": "Time",
+    "calendar.select.time": "Select Time",
+    "calendar.all.day": "All Day",
     "login.welcome": "Welcome Back",
     "login.instruction": "Please login with your email and password.",
     "login.email": "Email Address",
@@ -248,13 +264,21 @@ export const translations: Record<Language, Translations> = {
     "alerts.stats.today": "Ngayon",
     "alerts.stats.week": "Sa Linggong Ito",
     "alerts.hint": "I-enable ang notifications para makatanggap ng napapanahong alerts para sa inyong mga tanim at kondisyon ng panahon.",
-    "calendar.title": "Kalendaryo",
+    "calendar.title": "Kalendaryo ng Pagsasaka",
     "calendar.safe": "Ligtas",
     "calendar.caution": "Mag-ingat",
     "calendar.high.risk": "Mataas na Panganib",
-    "calendar.no.tasks": "Walang naka-schedule na gawain para sa araw na ito.",
+    "calendar.no.tasks": "Walang naka-schedule na gawain",
     "calendar.complete": "Tapusin",
     "calendar.skip": "Laktawan",
+    "calendar.tasks.for": "Mga Gawain para sa",
+    "calendar.typhoon.signal": "Typhoon Signal #1",
+    "calendar.select.crops": "Pumili ng mga tanim at itakda ang planting dates para makita ang daily tasks",
+    "calendar.create.task": "Gumawa ng Bagong Gawain",
+    "calendar.task.title": "Pamagat ng Gawain",
+    "calendar.time": "Oras",
+    "calendar.select.time": "Pumili ng Oras",
+    "calendar.all.day": "Buong Araw",
     "login.welcome": "Maligayang Pagbabalik",
     "login.instruction": "Mag-login gamit ang inyong email at password.",
     "login.email": "Email Address",
