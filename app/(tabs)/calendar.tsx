@@ -1,11 +1,9 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useRouter, useFocusEffect } from "expo-router";
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,27 +11,30 @@ import {
   TextInput,
   View,
 } from "react-native";
+
 import { Calendar, DateData } from "react-native-calendars";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
+import { useCropPlantingDates } from "@/hooks/use-crop-planting-dates";
 import { useLanguage } from "@/hooks/use-language";
 import { useUserCrops } from "@/hooks/use-user-crops";
-import { useCropPlantingDates } from "@/hooks/use-crop-planting-dates";
 import {
-  generateDailyTasks,
   DailyTask,
-  TaskType,
+  generateDailyTasks,
   TaskStatus,
-  getTaskColor,
+  TaskType,
 } from "@/lib/daily-tasks";
 import {
+  CurrentWeather,
+  DailyForecastItem,
+  fetchWeatherForecast,
+} from "@/lib/weather";
+import {
   generateWeatherSuggestions,
-  WeatherInput,
   LocationContext,
 } from "@/lib/weather-suggestions";
-import { DailyForecastItem, fetchWeatherForecast, CurrentWeather } from "@/lib/weather";
 
 type RiskLevel = "safe" | "caution" | "high-risk";
 
@@ -54,7 +55,9 @@ type Task = {
   taskType?: TaskType;
 };
 
-const getRiskFromPrecipitation = (precipitation: number | null | undefined): RiskLevel => {
+const getRiskFromPrecipitation = (
+  precipitation: number | null | undefined
+): RiskLevel => {
   const value = precipitation ?? 0;
   if (value >= 70) return "high-risk";
   if (value >= 40) return "caution";
@@ -75,7 +78,10 @@ const getRiskColor = (risk: RiskLevel): string => {
 };
 
 // getRiskLabel will be called with translations in the component
-const getRiskLabel = (risk: RiskLevel, t: (key: keyof import("@/constants/translations").Translations) => string): string => {
+const getRiskLabel = (
+  risk: RiskLevel,
+  t: (key: keyof import("@/constants/translations").Translations) => string
+): string => {
   switch (risk) {
     case "safe":
       return t("calendar.safe");
@@ -127,7 +133,8 @@ function TaskCard({
   colors: Theme;
   styles: ReturnType<typeof createStyles>;
 }) {
-  const isCompleted = task.isDailyTask && task.dailyTask?.status === "Completed";
+  const isCompleted =
+    task.isDailyTask && task.dailyTask?.status === "Completed";
   const isSkipped = task.isDailyTask && task.dailyTask?.status === "Skipped";
 
   return (
@@ -165,11 +172,17 @@ function TaskCard({
               <Text style={styles.taskCropName}>{task.cropName}</Text>
             </>
           )}
-          <MaterialIcons name="access-time" size={16} color={colors.textSubtle} />
+          <MaterialIcons
+            name="access-time"
+            size={16}
+            color={colors.textSubtle}
+          />
           <Text style={styles.taskTime}>{task.time}</Text>
         </View>
         {task.dailyTask?.description && (
-          <Text style={styles.taskDescription}>{task.dailyTask.description}</Text>
+          <Text style={styles.taskDescription}>
+            {task.dailyTask.description}
+          </Text>
         )}
       </View>
       <View style={styles.taskFooter}>
@@ -181,12 +194,16 @@ function TaskCard({
                 task.riskLevel === "high-risk"
                   ? "#fee2e2"
                   : task.riskLevel === "caution"
-                    ? "#fef3c7"
-                    : "#dcfce7",
+                  ? "#fef3c7"
+                  : "#dcfce7",
             },
           ]}
         >
-          <MaterialIcons name={task.riskIcon} size={14} color={task.borderColor} />
+          <MaterialIcons
+            name={task.riskIcon}
+            size={14}
+            color={task.borderColor}
+          />
           <Text style={[styles.riskBadgeText, { color: task.borderColor }]}>
             {task.riskLabel}
           </Text>
@@ -196,8 +213,7 @@ function TaskCard({
             style={[
               styles.recommendation,
               {
-                color:
-                  task.riskLevel === "high-risk" ? "#e74c3c" : "#f59e0b",
+                color: task.riskLevel === "high-risk" ? "#e74c3c" : "#f59e0b",
               },
             ]}
           >
@@ -210,7 +226,9 @@ function TaskCard({
 }
 
 // Helper functions for daily tasks
-function getIconFromTaskType(taskType: TaskType): keyof typeof MaterialIcons.glyphMap {
+function getIconFromTaskType(
+  taskType: TaskType
+): keyof typeof MaterialIcons.glyphMap {
   switch (taskType) {
     case "Planting":
       return "eco";
@@ -251,33 +269,35 @@ async function updateTaskStatus(
   try {
     const statuses = await loadTaskStatuses();
     statuses[taskId] = status;
-    await AsyncStorage.setItem(TASK_STATUS_STORAGE_KEY, JSON.stringify(statuses));
+    await AsyncStorage.setItem(
+      TASK_STATUS_STORAGE_KEY,
+      JSON.stringify(statuses)
+    );
   } catch (error) {
     console.error("Error updating task status:", error);
   }
 }
-
 
 export default function CalendarScreen() {
   const { colors, isDark } = useAppTheme();
   const { t } = useLanguage();
   const router = useRouter();
   const { crops } = useUserCrops();
-  const { plantingDates, getPlantingDate, loadPlantingDates } = useCropPlantingDates();
+  const { plantingDates, getPlantingDate, loadPlantingDates } =
+    useCropPlantingDates();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [tasks, setTasks] = useState<Task[]>([]);
   const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
   const [tasksLoaded, setTasksLoaded] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
-  const [selectedTime, setSelectedTime] = useState(new Date());
   const [newTask, setNewTask] = useState({
     title: "",
-    time: "",
     riskLevel: "safe" as RiskLevel,
   });
   const [dailyForecast, setDailyForecast] = useState<DailyForecastItem[]>([]);
-  const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(null);
+  const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(
+    null
+  );
   const [locationContext, setLocationContext] = useState<LocationContext>({
     municipality: "Balanga City",
   });
@@ -290,7 +310,9 @@ export default function CalendarScreen() {
   useEffect(() => {
     const loadLocation = async () => {
       try {
-        const locationJson = await AsyncStorage.getItem("@plantanim:user_location");
+        const locationJson = await AsyncStorage.getItem(
+          "@plantanim:user_location"
+        );
         if (locationJson) {
           const location = JSON.parse(locationJson);
           setLocationContext({
@@ -384,7 +406,7 @@ export default function CalendarScreen() {
         await loadPlantingDates();
         await loadDailyTasks();
       };
-      
+
       if (crops.length > 0) {
         refreshTasks();
       }
@@ -573,66 +595,8 @@ export default function CalendarScreen() {
     setSelectedDate(new Date(day.year, day.month - 1, day.day));
   };
 
-  const formatTime = (date: Date): string => {
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    const minuteStr = minutes.toString().padStart(2, "0");
-    const period = hours < 12 ? "AM" : "PM";
-    return `${displayHour.toString().padStart(2, "0")}:${minuteStr} ${period}`;
-  };
-
-  // Parse a formatted time string like "02:30 PM" back into a Date (today's date)
-  const parseTimeStringToDate = (time: string): Date => {
-    const now = new Date();
-    const match = time.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
-
-    if (!match) {
-      return now;
-    }
-
-    let hours = parseInt(match[1], 10);
-    const minutes = parseInt(match[2], 10);
-    const period = match[3].toUpperCase();
-
-    // Convert to 24h
-    if (period === "AM") {
-      if (hours === 12) {
-        hours = 0;
-      }
-    } else if (period === "PM") {
-      if (hours !== 12) {
-        hours += 12;
-      }
-    }
-
-    const parsed = new Date(now);
-    parsed.setHours(hours, minutes, 0, 0);
-    return parsed;
-  };
-
-  const handleTimeChange = (event: any, date?: Date) => {
-    if (Platform.OS === "android") {
-      setShowTimePicker(false);
-      if (event.type === "set" && date) {
-        setSelectedTime(date);
-        setNewTask({ ...newTask, time: formatTime(date) });
-      }
-    } else {
-      if (date) {
-        setSelectedTime(date);
-        setNewTask({ ...newTask, time: formatTime(date) });
-      }
-    }
-  };
-
-  const handleTimePickerConfirm = () => {
-    setNewTask({ ...newTask, time: formatTime(selectedTime) });
-    setShowTimePicker(false);
-  };
-
   const handleCreateTask = () => {
-    if (!newTask.title || !newTask.time) return;
+    if (!newTask.title) return;
 
     const selectedRisk =
       riskByDate[selectedDateString]?.risk ?? getRiskFromPrecipitation(null);
@@ -640,13 +604,13 @@ export default function CalendarScreen() {
       selectedRisk === "high-risk"
         ? "flash-on"
         : selectedRisk === "caution"
-          ? "water-drop"
-          : "check-circle";
+        ? "water-drop"
+        : "check-circle";
 
     const task: Task = {
       id: Date.now().toString(),
       title: newTask.title,
-      time: newTask.time,
+      time: t("calendar.all.day"),
       dateKey: selectedDateString,
       riskLevel: selectedRisk,
       riskLabel: getRiskLabel(selectedRisk, t),
@@ -656,13 +620,12 @@ export default function CalendarScreen() {
         selectedRisk === "high-risk"
           ? "RESCHEDULE RECOMMENDED"
           : selectedRisk === "caution"
-            ? "PROCEED WITH CARE"
-            : undefined,
+          ? "PROCEED WITH CARE"
+          : undefined,
     };
 
     setTasks([...tasks, task]);
-    setNewTask({ title: "", time: "", riskLevel: "safe" });
-    setSelectedTime(new Date());
+    setNewTask({ title: "", riskLevel: "safe" });
     setShowTaskModal(false);
   };
 
@@ -698,15 +661,20 @@ export default function CalendarScreen() {
 
   // Merge daily tasks with manual tasks for selected date
   const selectedDateTasks = useMemo(() => {
-    const manualTasks = tasks.filter((task) => task.dateKey === selectedDateString);
+    const manualTasks = tasks.filter(
+      (task) => task.dateKey === selectedDateString
+    );
 
     // Convert daily tasks to Task format
     const dailyTasksForDate = dailyTasks
-      .filter((task) => task.date === selectedDateString && task.status === "Pending")
+      .filter(
+        (task) => task.date === selectedDateString && task.status === "Pending"
+      )
       .map((task) => {
         const dateRisk = riskByDate[task.date]?.risk ?? "safe";
         const riskIcon = getIconFromTaskType(task.taskType);
-        const hasWeatherWarning = task.isWeatherSensitive && dateRisk !== "safe";
+        const hasWeatherWarning =
+          task.isWeatherSensitive && dateRisk !== "safe";
 
         // Find related weather suggestion
         const relatedSuggestion = weatherSuggestions.find(
@@ -721,7 +689,8 @@ export default function CalendarScreen() {
           if (dateRisk === "high-risk") {
             recommendation = "RESCHEDULE RECOMMENDED";
           } else if (relatedSuggestion) {
-            recommendation = relatedSuggestion.recommendedAction.slice(0, 30) + "...";
+            recommendation =
+              relatedSuggestion.recommendedAction.slice(0, 30) + "...";
           } else {
             recommendation = "CHECK WEATHER";
           }
@@ -764,7 +733,11 @@ export default function CalendarScreen() {
             style={styles.menuButton}
             onPress={() => router.push("/set-planting-dates")}
           >
-            <MaterialIcons name="calendar-today" size={24} color={colors.text} />
+            <MaterialIcons
+              name="calendar-today"
+              size={24}
+              color={colors.text}
+            />
           </Pressable>
         </View>
 
@@ -804,7 +777,9 @@ export default function CalendarScreen() {
               {t("calendar.tasks.for")} {formatDate(selectedDate)}
             </Text>
             {selectedDateRisk === "high-risk" && (
-              <Text style={styles.weatherAlert}>{t("calendar.typhoon.signal")}</Text>
+              <Text style={styles.weatherAlert}>
+                {t("calendar.typhoon.signal")}
+              </Text>
             )}
           </View>
 
@@ -819,7 +794,9 @@ export default function CalendarScreen() {
             ))
           ) : (
             <View style={styles.emptyTasks}>
-              <Text style={styles.emptyTasksText}>{t("calendar.no.tasks")}</Text>
+              <Text style={styles.emptyTasksText}>
+                {t("calendar.no.tasks")}
+              </Text>
               {crops.filter((c) => c.selected).length === 0 && (
                 <Text style={[styles.emptyTasksText, { marginTop: 8 }]}>
                   {t("calendar.select.crops")}
@@ -831,10 +808,7 @@ export default function CalendarScreen() {
       </ScrollView>
 
       {/* FAB */}
-      <Pressable
-        style={styles.fab}
-        onPress={() => setShowTaskModal(true)}
-      >
+      <Pressable style={styles.fab} onPress={() => setShowTaskModal(true)}>
         <MaterialIcons name="add" size={32} color="#fff" />
       </Pressable>
 
@@ -856,7 +830,9 @@ export default function CalendarScreen() {
 
             <View style={styles.modalBody}>
               <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>{t("calendar.task.title")}</Text>
+                <Text style={styles.inputLabel}>
+                  {t("calendar.task.title")}
+                </Text>
                 <TextInput
                   style={styles.input}
                   placeholder="e.g., Fertilizer Application"
@@ -866,37 +842,6 @@ export default function CalendarScreen() {
                   }
                   placeholderTextColor={colors.textSubtle}
                 />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.inputLabel}>{t("calendar.time")}</Text>
-                <Pressable
-                  style={styles.timeInput}
-                  onPress={() => {
-                    // Initialize time picker with the currently selected task time (if any)
-                    if (newTask.time) {
-                      setSelectedTime(parseTimeStringToDate(newTask.time));
-                    } else {
-                      // Fallback to current time when no time has been chosen yet
-                      setSelectedTime(new Date());
-                    }
-                    setShowTimePicker(true);
-                  }}
-                >
-                  <MaterialIcons
-                    name="access-time"
-                    size={20}
-                    color={colors.textSubtle}
-                  />
-                  <Text
-                    style={[
-                      styles.timeInputText,
-                      !newTask.time && styles.timeInputPlaceholder,
-                    ]}
-                  >
-                    {newTask.time || t("calendar.select.time")}
-                  </Text>
-                </Pressable>
               </View>
 
               <View style={styles.modalInfo}>
@@ -917,78 +862,26 @@ export default function CalendarScreen() {
                 style={styles.cancelButton}
                 onPress={() => setShowTaskModal(false)}
               >
-                <Text style={styles.cancelButtonText}>{t("common.cancel")}</Text>
+                <Text style={styles.cancelButtonText}>
+                  {t("common.cancel")}
+                </Text>
               </Pressable>
               <Pressable
                 style={[
                   styles.createButton,
-                  (!newTask.title || !newTask.time) && styles.createButtonDisabled,
+                  !newTask.title && styles.createButtonDisabled,
                 ]}
                 onPress={handleCreateTask}
-                disabled={!newTask.title || !newTask.time}
+                disabled={!newTask.title}
               >
-                <Text style={styles.createButtonText}>{t("calendar.create.task")}</Text>
+                <Text style={styles.createButtonText}>
+                  {t("calendar.create.task")}
+                </Text>
               </Pressable>
             </View>
           </View>
         </View>
       </Modal>
-
-      {/* Time Picker */}
-      {Platform.OS === "ios" ? (
-        <Modal
-          visible={showTimePicker}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setShowTimePicker(false)}
-        >
-          <View style={styles.timePickerOverlay}>
-            <View style={styles.timePickerContent}>
-              <View style={styles.timePickerHeader}>
-                <Text style={styles.timePickerTitle}>{t("calendar.select.time")}</Text>
-                <Pressable onPress={() => setShowTimePicker(false)}>
-                  <MaterialIcons name="close" size={24} color={colors.text} />
-                </Pressable>
-              </View>
-
-              <View style={styles.timePickerBody}>
-                <DateTimePicker
-                  value={selectedTime}
-                  mode="time"
-                  display="spinner"
-                  onChange={handleTimeChange}
-                  textColor={colors.text}
-                  themeVariant={colors.background === "#101922" ? "dark" : "light"}
-                />
-              </View>
-
-              <View style={styles.timePickerFooter}>
-                <Pressable
-                  style={styles.timePickerCancelButton}
-                  onPress={() => setShowTimePicker(false)}
-                >
-                  <Text style={styles.timePickerCancelText}>{t("common.cancel")}</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.timePickerConfirmButton}
-                  onPress={handleTimePickerConfirm}
-                >
-                  <Text style={styles.timePickerConfirmText}>{t("common.ok")}</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
-        </Modal>
-      ) : (
-        showTimePicker && (
-          <DateTimePicker
-            value={selectedTime}
-            mode="time"
-            display="default"
-            onChange={handleTimeChange}
-          />
-        )
-      )}
     </SafeAreaView>
   );
 }
@@ -1294,79 +1187,6 @@ const createStyles = (theme: Theme) =>
       opacity: 0.5,
     },
     createButtonText: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: "#fff",
-    },
-    timeInput: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 12,
-      backgroundColor: theme.surface,
-      borderRadius: 12,
-      padding: 16,
-      borderWidth: 1,
-      borderColor: theme.icon + "22",
-    },
-    timeInputText: {
-      fontSize: 16,
-      color: theme.text,
-    },
-    timeInputPlaceholder: {
-      color: theme.textSubtle,
-    },
-    timePickerOverlay: {
-      flex: 1,
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    timePickerContent: {
-      backgroundColor: theme.background,
-      borderRadius: 24,
-      width: "90%",
-      maxWidth: 400,
-      padding: 24,
-    },
-    timePickerHeader: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      marginBottom: 24,
-    },
-    timePickerTitle: {
-      fontSize: 20,
-      fontWeight: "800",
-      color: theme.text,
-    },
-    timePickerBody: {
-      alignItems: "center",
-      marginBottom: 24,
-    },
-    timePickerFooter: {
-      flexDirection: "row",
-      gap: 12,
-    },
-    timePickerCancelButton: {
-      flex: 1,
-      padding: 16,
-      borderRadius: 12,
-      backgroundColor: theme.surface,
-      alignItems: "center",
-    },
-    timePickerCancelText: {
-      fontSize: 16,
-      fontWeight: "700",
-      color: theme.text,
-    },
-    timePickerConfirmButton: {
-      flex: 1,
-      padding: 16,
-      borderRadius: 12,
-      backgroundColor: theme.tint,
-      alignItems: "center",
-    },
-    timePickerConfirmText: {
       fontSize: 16,
       fontWeight: "700",
       color: "#fff",
