@@ -582,6 +582,35 @@ export default function CalendarScreen() {
     return `${displayHour.toString().padStart(2, "0")}:${minuteStr} ${period}`;
   };
 
+  // Parse a formatted time string like "02:30 PM" back into a Date (today's date)
+  const parseTimeStringToDate = (time: string): Date => {
+    const now = new Date();
+    const match = time.match(/(\d{1,2}):(\d{2})\s?(AM|PM)/i);
+
+    if (!match) {
+      return now;
+    }
+
+    let hours = parseInt(match[1], 10);
+    const minutes = parseInt(match[2], 10);
+    const period = match[3].toUpperCase();
+
+    // Convert to 24h
+    if (period === "AM") {
+      if (hours === 12) {
+        hours = 0;
+      }
+    } else if (period === "PM") {
+      if (hours !== 12) {
+        hours += 12;
+      }
+    }
+
+    const parsed = new Date(now);
+    parsed.setHours(hours, minutes, 0, 0);
+    return parsed;
+  };
+
   const handleTimeChange = (event: any, date?: Date) => {
     if (Platform.OS === "android") {
       setShowTimePicker(false);
@@ -844,8 +873,11 @@ export default function CalendarScreen() {
                 <Pressable
                   style={styles.timeInput}
                   onPress={() => {
-                    // Initialize with current time if no time is selected
-                    if (!newTask.time) {
+                    // Initialize time picker with the currently selected task time (if any)
+                    if (newTask.time) {
+                      setSelectedTime(parseTimeStringToDate(newTask.time));
+                    } else {
+                      // Fallback to current time when no time has been chosen yet
                       setSelectedTime(new Date());
                     }
                     setShowTimePicker(true);
