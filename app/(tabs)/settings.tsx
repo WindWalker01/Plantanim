@@ -146,6 +146,23 @@ export default function SettingsScreen() {
                 color={colors.textSubtle}
               />
             </Pressable>
+
+            <View style={styles.divider} />
+
+            <Pressable
+              style={styles.settingRow}
+              onPress={() => router.push("/demo")}
+            >
+              <View style={styles.iconContainer}>
+                <MaterialIcons name="play-circle-filled" size={20} color={colors.text} />
+              </View>
+              <Text style={styles.settingText}>App Demo</Text>
+              <MaterialIcons
+                name="chevron-right"
+                size={24}
+                color={colors.textSubtle}
+              />
+            </Pressable>
           </View>
         </View>
 
