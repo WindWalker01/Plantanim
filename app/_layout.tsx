@@ -7,8 +7,8 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import "react-native-reanimated";
 
-import { useColorScheme } from "react-native";
 import { LanguageProvider } from "@/hooks/use-language";
+import { useColorScheme } from "react-native";
 
 export const unstable_settings = {
   initialRouteName: "index",
@@ -21,10 +21,7 @@ export default function RootLayout() {
     <LanguageProvider>
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <Stack>
-          <Stack.Screen
-            name="index"
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen
             name="onboarding"
             options={{ headerShown: false, presentation: "card" }}
@@ -35,6 +32,10 @@ export default function RootLayout() {
           />
           <Stack.Screen
             name="personalization"
+            options={{ headerShown: false, presentation: "card" }}
+          />
+          <Stack.Screen
+            name="change-name"
             options={{ headerShown: false, presentation: "card" }}
           />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

@@ -56,7 +56,7 @@ type Task = {
 };
 
 const getRiskFromPrecipitation = (
-  precipitation: number | null | undefined
+  precipitation: number | null | undefined,
 ): RiskLevel => {
   const value = precipitation ?? 0;
   if (value >= 70) return "high-risk";
@@ -80,7 +80,7 @@ const getRiskColor = (risk: RiskLevel): string => {
 // getRiskLabel will be called with translations in the component
 const getRiskLabel = (
   risk: RiskLevel,
-  t: (key: keyof import("@/constants/translations").Translations) => string
+  t: (key: keyof import("@/constants/translations").Translations) => string,
 ): string => {
   switch (risk) {
     case "safe":
@@ -194,8 +194,8 @@ function TaskCard({
                 task.riskLevel === "high-risk"
                   ? "#fee2e2"
                   : task.riskLevel === "caution"
-                  ? "#fef3c7"
-                  : "#dcfce7",
+                    ? "#fef3c7"
+                    : "#dcfce7",
             },
           ]}
         >
@@ -227,7 +227,7 @@ function TaskCard({
 
 // Helper functions for daily tasks
 function getIconFromTaskType(
-  taskType: TaskType
+  taskType: TaskType,
 ): keyof typeof MaterialIcons.glyphMap {
   switch (taskType) {
     case "Planting":
@@ -264,14 +264,14 @@ async function loadTaskStatuses(): Promise<Record<string, TaskStatus>> {
 async function updateTaskStatus(
   taskId: string,
   status: TaskStatus,
-  skipReason?: string
+  skipReason?: string,
 ): Promise<void> {
   try {
     const statuses = await loadTaskStatuses();
     statuses[taskId] = status;
     await AsyncStorage.setItem(
       TASK_STATUS_STORAGE_KEY,
-      JSON.stringify(statuses)
+      JSON.stringify(statuses),
     );
   } catch (error) {
     console.error("Error updating task status:", error);
@@ -296,7 +296,7 @@ export default function CalendarScreen() {
   });
   const [dailyForecast, setDailyForecast] = useState<DailyForecastItem[]>([]);
   const [currentWeather, setCurrentWeather] = useState<CurrentWeather | null>(
-    null
+    null,
   );
   const [locationContext, setLocationContext] = useState<LocationContext>({
     municipality: "Balanga City",
@@ -311,7 +311,7 @@ export default function CalendarScreen() {
     const loadLocation = async () => {
       try {
         const locationJson = await AsyncStorage.getItem(
-          "@plantanim:user_location"
+          "@plantanim:user_location",
         );
         if (locationJson) {
           const location = JSON.parse(locationJson);
@@ -370,7 +370,7 @@ export default function CalendarScreen() {
             crop.id,
             plantingDate,
             currentDate,
-            60 // Look ahead 60 days
+            60, // Look ahead 60 days
           );
           allTasks.push(...cropTasks);
         }
@@ -410,7 +410,7 @@ export default function CalendarScreen() {
       if (crops.length > 0) {
         refreshTasks();
       }
-    }, [crops, loadPlantingDates, loadDailyTasks])
+    }, [crops, loadPlantingDates, loadDailyTasks]),
   );
 
   // Load tasks from local storage on mount
@@ -450,7 +450,7 @@ export default function CalendarScreen() {
     AsyncStorage.setItem(TASKS_STORAGE_KEY, JSON.stringify(tasks)).catch(
       (e) => {
         console.error("Error saving calendar tasks:", e);
-      }
+      },
     );
   }, [tasks, tasksLoaded]);
 
@@ -588,7 +588,7 @@ export default function CalendarScreen() {
       textMonthFontSize: 18,
       textDayHeaderFontSize: 12,
     }),
-    [colors]
+    [colors],
   );
 
   const handleDayPress = (day: DateData) => {
@@ -604,8 +604,8 @@ export default function CalendarScreen() {
       selectedRisk === "high-risk"
         ? "flash-on"
         : selectedRisk === "caution"
-        ? "water-drop"
-        : "check-circle";
+          ? "water-drop"
+          : "check-circle";
 
     const task: Task = {
       id: Date.now().toString(),
@@ -620,8 +620,8 @@ export default function CalendarScreen() {
         selectedRisk === "high-risk"
           ? "RESCHEDULE RECOMMENDED"
           : selectedRisk === "caution"
-          ? "PROCEED WITH CARE"
-          : undefined,
+            ? "PROCEED WITH CARE"
+            : undefined,
     };
 
     setTasks([...tasks, task]);
@@ -651,7 +651,7 @@ export default function CalendarScreen() {
             dateKey: t.date,
             taskType: t.taskType,
           })),
-        }
+        },
       );
     } catch (error) {
       console.error("Error generating weather suggestions:", error);
@@ -662,13 +662,13 @@ export default function CalendarScreen() {
   // Merge daily tasks with manual tasks for selected date
   const selectedDateTasks = useMemo(() => {
     const manualTasks = tasks.filter(
-      (task) => task.dateKey === selectedDateString
+      (task) => task.dateKey === selectedDateString,
     );
 
     // Convert daily tasks to Task format
     const dailyTasksForDate = dailyTasks
       .filter(
-        (task) => task.date === selectedDateString && task.status === "Pending"
+        (task) => task.date === selectedDateString && task.status === "Pending",
       )
       .map((task) => {
         const dateRisk = riskByDate[task.date]?.risk ?? "safe";
@@ -681,7 +681,7 @@ export default function CalendarScreen() {
           (s) =>
             s.type === "ScheduleSuggestion" &&
             (s.message.includes(task.title) ||
-              (task.isWeatherSensitive && s.priority === "HIGH"))
+              (task.isWeatherSensitive && s.priority === "HIGH")),
         );
 
         let recommendation: string | undefined;
@@ -727,7 +727,12 @@ export default function CalendarScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.placeholder} />
+          <Pressable
+            style={styles.cyclesButton}
+            onPress={() => router.push("/farming-cycles")}
+          >
+            <MaterialIcons name="history" size={24} color={colors.text} />
+          </Pressable>
           <Text style={styles.screenTitle}>Farming Calendar</Text>
           <Pressable
             style={styles.menuButton}
@@ -902,13 +907,12 @@ const createStyles = (theme: Theme) =>
       justifyContent: "space-between",
       marginBottom: 20,
     },
-    placeholder: {
+    cyclesButton: {
       width: 40,
-    },
-    screenTitle: {
-      fontSize: 20,
-      fontWeight: "800",
-      color: theme.text,
+      height: 40,
+      borderRadius: 12,
+      alignItems: "center",
+      justifyContent: "center",
     },
     menuButton: {
       width: 40,

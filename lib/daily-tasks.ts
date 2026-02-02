@@ -1,11 +1,11 @@
 /**
  * Daily Farming Tasks Module
- * 
+ *
  * Generates simple, actionable daily tasks based on:
  * - Selected crop
  * - Current day of crop cycle
  * - Optional weather influence
- * 
+ *
  * Design Principle: "Tasks guide daily work. Suggestions guide risk."
  * Tasks are stable and predictable; suggestions modify behavior during extreme weather.
  */
@@ -17,7 +17,15 @@
 /**
  * Task types for different farming activities
  */
-export type TaskType = "Planting" | "Fertilizing" | "Weeding" | "Monitoring" | "HarvestPrep" | "Irrigation" | "PestControl" | "LandPreparation";
+export type TaskType =
+  | "Planting"
+  | "Fertilizing"
+  | "Weeding"
+  | "Monitoring"
+  | "HarvestPrep"
+  | "Irrigation"
+  | "PestControl"
+  | "LandPreparation";
 
 /**
  * Task status
@@ -27,7 +35,7 @@ export type TaskStatus = "Pending" | "Completed" | "Skipped";
 /**
  * Growth stages for crops
  */
-export type GrowthStage = 
+export type GrowthStage =
   | "Seedling"
   | "Vegetative"
   | "Flowering"
@@ -41,43 +49,43 @@ export type GrowthStage =
 export interface DailyTask {
   /** Unique identifier */
   id: string;
-  
+
   /** Date in YYYY-MM-DD format */
   date: string;
-  
+
   /** Crop type ID (e.g., "rice", "corn", "vegetables") */
   cropType: string;
-  
+
   /** Crop name for display */
   cropName: string;
-  
+
   /** Current growth stage */
   growthStage: GrowthStage;
-  
+
   /** Day number in crop cycle (1 = planting day) */
   dayInCycle: number;
-  
+
   /** Type of task */
   taskType: TaskType;
-  
+
   /** Short, clear title */
   title: string;
-  
+
   /** Detailed description in plain language */
   description: string;
-  
+
   /** Whether this task is affected by weather */
   isWeatherSensitive: boolean;
-  
+
   /** Current status */
   status: TaskStatus;
-  
+
   /** Color for calendar display */
   calendarColor: string;
-  
+
   /** Optional: Reason for skipping */
   skipReason?: string;
-  
+
   /** Optional: Link to related weather suggestion ID */
   relatedSuggestionId?: string;
 }
@@ -88,25 +96,25 @@ export interface DailyTask {
 export interface TaskTemplate {
   /** Day in crop cycle when this task occurs */
   day: number;
-  
+
   /** Task type */
   taskType: TaskType;
-  
+
   /** Title template (can include {day} placeholder) */
   title: string;
-  
+
   /** Description template */
   description: string;
-  
+
   /** Growth stage at this point */
   growthStage: GrowthStage;
-  
+
   /** Whether task is weather-sensitive */
   isWeatherSensitive: boolean;
-  
+
   /** Calendar color */
   calendarColor: string;
-  
+
   /** Optional: Range of days (for recurring tasks) */
   dayRange?: { start: number; end: number; interval?: number };
 }
@@ -117,13 +125,13 @@ export interface TaskTemplate {
 export interface CropConfig {
   /** Crop ID */
   id: string;
-  
+
   /** Crop name */
   name: string;
-  
+
   /** Expected duration in days */
   durationDays: number;
-  
+
   /** Task templates for this crop */
   taskTemplates: TaskTemplate[];
 }
@@ -145,7 +153,8 @@ const RICE_CONFIG: CropConfig = {
       day: 1,
       taskType: "LandPreparation",
       title: "Prepare Land for Planting",
-      description: "Clear the field, level the ground, and prepare irrigation channels for rice planting.",
+      description:
+        "Clear the field, level the ground, and prepare irrigation channels for rice planting.",
       growthStage: "Seedling",
       isWeatherSensitive: false,
       calendarColor: "#8b5cf6", // Purple
@@ -154,7 +163,8 @@ const RICE_CONFIG: CropConfig = {
       day: 1,
       taskType: "Planting",
       title: "Plant Rice Seedlings",
-      description: "Transplant rice seedlings into the prepared field. Space them properly for good growth.",
+      description:
+        "Transplant rice seedlings into the prepared field. Space them properly for good growth.",
       growthStage: "Seedling",
       isWeatherSensitive: true,
       calendarColor: "#16a34a", // Green
@@ -163,7 +173,8 @@ const RICE_CONFIG: CropConfig = {
       day: 14,
       taskType: "Fertilizing",
       title: "Apply First Fertilizer",
-      description: "Apply nitrogen fertilizer to support early growth and tillering.",
+      description:
+        "Apply nitrogen fertilizer to support early growth and tillering.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b", // Amber
@@ -172,7 +183,8 @@ const RICE_CONFIG: CropConfig = {
       day: 30,
       taskType: "Weeding",
       title: "Remove Weeds",
-      description: "Clear weeds around rice plants to prevent competition for nutrients and water.",
+      description:
+        "Clear weeds around rice plants to prevent competition for nutrients and water.",
       growthStage: "Vegetative",
       isWeatherSensitive: false,
       calendarColor: "#10b981", // Emerald
@@ -181,7 +193,8 @@ const RICE_CONFIG: CropConfig = {
       day: 45,
       taskType: "Fertilizing",
       title: "Apply Second Fertilizer",
-      description: "Apply fertilizer during panicle initiation stage for better grain development.",
+      description:
+        "Apply fertilizer during panicle initiation stage for better grain development.",
       growthStage: "Flowering",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -190,7 +203,8 @@ const RICE_CONFIG: CropConfig = {
       day: 50,
       taskType: "Monitoring",
       title: "Check for Pests",
-      description: "Inspect rice plants for common pests like brown planthopper and stem borer.",
+      description:
+        "Inspect rice plants for common pests like brown planthopper and stem borer.",
       growthStage: "Flowering",
       isWeatherSensitive: false,
       calendarColor: "#3b82f6", // Blue
@@ -199,7 +213,8 @@ const RICE_CONFIG: CropConfig = {
       day: 60,
       taskType: "Irrigation",
       title: "Manage Water Level",
-      description: "Maintain proper water level in the field. Rice needs consistent water during flowering.",
+      description:
+        "Maintain proper water level in the field. Rice needs consistent water during flowering.",
       growthStage: "Flowering",
       isWeatherSensitive: false,
       calendarColor: "#06b6d4", // Cyan
@@ -208,7 +223,8 @@ const RICE_CONFIG: CropConfig = {
       day: 90,
       taskType: "HarvestPrep",
       title: "Prepare for Harvest",
-      description: "Check grain maturity. Stop irrigation and prepare harvesting tools.",
+      description:
+        "Check grain maturity. Stop irrigation and prepare harvesting tools.",
       growthStage: "Maturation",
       isWeatherSensitive: false,
       calendarColor: "#e74c3c", // Red
@@ -217,7 +233,8 @@ const RICE_CONFIG: CropConfig = {
       day: 100,
       taskType: "HarvestPrep",
       title: "Harvest Rice",
-      description: "Harvest mature rice grains. Dry them properly before storage.",
+      description:
+        "Harvest mature rice grains. Dry them properly before storage.",
       growthStage: "Harvest",
       isWeatherSensitive: true,
       calendarColor: "#e74c3c",
@@ -238,7 +255,8 @@ const CORN_CONFIG: CropConfig = {
       day: 1,
       taskType: "LandPreparation",
       title: "Prepare Soil for Corn",
-      description: "Plow and harrow the field. Ensure good drainage for corn planting.",
+      description:
+        "Plow and harrow the field. Ensure good drainage for corn planting.",
       growthStage: "Seedling",
       isWeatherSensitive: false,
       calendarColor: "#8b5cf6",
@@ -247,7 +265,8 @@ const CORN_CONFIG: CropConfig = {
       day: 1,
       taskType: "Planting",
       title: "Plant Corn Seeds",
-      description: "Plant corn seeds at proper spacing. Cover with soil and water gently.",
+      description:
+        "Plant corn seeds at proper spacing. Cover with soil and water gently.",
       growthStage: "Seedling",
       isWeatherSensitive: true,
       calendarColor: "#16a34a",
@@ -256,7 +275,8 @@ const CORN_CONFIG: CropConfig = {
       day: 10,
       taskType: "Fertilizing",
       title: "Apply Starter Fertilizer",
-      description: "Apply fertilizer to support early root development and growth.",
+      description:
+        "Apply fertilizer to support early root development and growth.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -274,7 +294,8 @@ const CORN_CONFIG: CropConfig = {
       day: 35,
       taskType: "Fertilizing",
       title: "Side-Dress Fertilizer",
-      description: "Apply fertilizer when corn reaches knee-high stage for better yield.",
+      description:
+        "Apply fertilizer when corn reaches knee-high stage for better yield.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -292,7 +313,8 @@ const CORN_CONFIG: CropConfig = {
       day: 70,
       taskType: "HarvestPrep",
       title: "Check Maturity",
-      description: "Check if corn ears are mature. Kernels should be firm and milky.",
+      description:
+        "Check if corn ears are mature. Kernels should be firm and milky.",
       growthStage: "Maturation",
       isWeatherSensitive: false,
       calendarColor: "#e74c3c",
@@ -301,7 +323,8 @@ const CORN_CONFIG: CropConfig = {
       day: 80,
       taskType: "HarvestPrep",
       title: "Harvest Corn",
-      description: "Harvest mature corn ears. Dry properly before storage or sale.",
+      description:
+        "Harvest mature corn ears. Dry properly before storage or sale.",
       growthStage: "Harvest",
       isWeatherSensitive: true,
       calendarColor: "#e74c3c",
@@ -322,7 +345,8 @@ const VEGETABLES_CONFIG: CropConfig = {
       day: 1,
       taskType: "LandPreparation",
       title: "Prepare Garden Bed",
-      description: "Prepare soil by tilling and adding compost. Ensure good drainage.",
+      description:
+        "Prepare soil by tilling and adding compost. Ensure good drainage.",
       growthStage: "Seedling",
       isWeatherSensitive: false,
       calendarColor: "#8b5cf6",
@@ -340,7 +364,8 @@ const VEGETABLES_CONFIG: CropConfig = {
       day: 12,
       taskType: "Fertilizing",
       title: "Apply First Fertilizer",
-      description: "Apply fertilizer to support early growth and root development.",
+      description:
+        "Apply fertilizer to support early growth and root development.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -349,7 +374,8 @@ const VEGETABLES_CONFIG: CropConfig = {
       day: 18,
       taskType: "Weeding",
       title: "Remove Weeds",
-      description: "Clear weeds around vegetable plants to prevent competition.",
+      description:
+        "Clear weeds around vegetable plants to prevent competition.",
       growthStage: "Vegetative",
       isWeatherSensitive: false,
       calendarColor: "#10b981",
@@ -358,7 +384,8 @@ const VEGETABLES_CONFIG: CropConfig = {
       day: 30,
       taskType: "Monitoring",
       title: "Check for Pests",
-      description: "Inspect plants for pests and diseases. Look for damaged leaves or fruits.",
+      description:
+        "Inspect plants for pests and diseases. Look for damaged leaves or fruits.",
       growthStage: "Fruiting",
       isWeatherSensitive: false,
       calendarColor: "#3b82f6",
@@ -367,7 +394,8 @@ const VEGETABLES_CONFIG: CropConfig = {
       day: 35,
       taskType: "Fertilizing",
       title: "Apply Flowering Fertilizer",
-      description: "Apply fertilizer to support flowering and fruit development.",
+      description:
+        "Apply fertilizer to support flowering and fruit development.",
       growthStage: "Flowering",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -376,7 +404,8 @@ const VEGETABLES_CONFIG: CropConfig = {
       day: 50,
       taskType: "PestControl",
       title: "Monitor and Control Pests",
-      description: "Check for pests regularly. Use appropriate control methods if needed.",
+      description:
+        "Check for pests regularly. Use appropriate control methods if needed.",
       growthStage: "Fruiting",
       isWeatherSensitive: false,
       calendarColor: "#ef4444", // Red-orange
@@ -385,7 +414,8 @@ const VEGETABLES_CONFIG: CropConfig = {
       day: 60,
       taskType: "HarvestPrep",
       title: "Start Harvesting",
-      description: "Begin harvesting mature vegetables. Harvest regularly to encourage more production.",
+      description:
+        "Begin harvesting mature vegetables. Harvest regularly to encourage more production.",
       growthStage: "Harvest",
       isWeatherSensitive: false,
       calendarColor: "#e74c3c",
@@ -406,7 +436,8 @@ const ROOT_CROPS_CONFIG: CropConfig = {
       day: 1,
       taskType: "LandPreparation",
       title: "Prepare Soil for Root Crops",
-      description: "Loosen soil deeply and remove stones. Root crops need loose, well-drained soil.",
+      description:
+        "Loosen soil deeply and remove stones. Root crops need loose, well-drained soil.",
       growthStage: "Seedling",
       isWeatherSensitive: false,
       calendarColor: "#8b5cf6",
@@ -424,7 +455,8 @@ const ROOT_CROPS_CONFIG: CropConfig = {
       day: 15,
       taskType: "Fertilizing",
       title: "Apply First Fertilizer",
-      description: "Apply fertilizer to support early growth and root development.",
+      description:
+        "Apply fertilizer to support early growth and root development.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -469,7 +501,8 @@ const ROOT_CROPS_CONFIG: CropConfig = {
       day: 95,
       taskType: "HarvestPrep",
       title: "Harvest Root Crops",
-      description: "Harvest mature root crops. Handle carefully to avoid damage.",
+      description:
+        "Harvest mature root crops. Handle carefully to avoid damage.",
       growthStage: "Harvest",
       isWeatherSensitive: true,
       calendarColor: "#e74c3c",
@@ -490,7 +523,8 @@ const MANGO_CONFIG: CropConfig = {
       day: 1,
       taskType: "Monitoring",
       title: "Annual Tree Inspection",
-      description: "Inspect mango trees for health, pests, and structural issues.",
+      description:
+        "Inspect mango trees for health, pests, and structural issues.",
       growthStage: "Vegetative",
       isWeatherSensitive: false,
       calendarColor: "#3b82f6",
@@ -499,7 +533,8 @@ const MANGO_CONFIG: CropConfig = {
       day: 30,
       taskType: "Fertilizing",
       title: "Apply Fertilizer",
-      description: "Apply balanced fertilizer to support tree growth and fruit production.",
+      description:
+        "Apply balanced fertilizer to support tree growth and fruit production.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -508,7 +543,8 @@ const MANGO_CONFIG: CropConfig = {
       day: 60,
       taskType: "PestControl",
       title: "Pest and Disease Control",
-      description: "Monitor and control common mango pests like fruit flies and anthracnose.",
+      description:
+        "Monitor and control common mango pests like fruit flies and anthracnose.",
       growthStage: "Flowering",
       isWeatherSensitive: false,
       calendarColor: "#ef4444",
@@ -535,7 +571,8 @@ const MANGO_CONFIG: CropConfig = {
       day: 180,
       taskType: "HarvestPrep",
       title: "Prepare for Harvest",
-      description: "Monitor fruit maturity. Prepare harvesting tools and storage.",
+      description:
+        "Monitor fruit maturity. Prepare harvesting tools and storage.",
       growthStage: "Maturation",
       isWeatherSensitive: false,
       calendarColor: "#e74c3c",
@@ -544,7 +581,8 @@ const MANGO_CONFIG: CropConfig = {
       day: 210,
       taskType: "HarvestPrep",
       title: "Harvest Mangoes",
-      description: "Harvest mature mangoes. Handle carefully to avoid bruising.",
+      description:
+        "Harvest mature mangoes. Handle carefully to avoid bruising.",
       growthStage: "Harvest",
       isWeatherSensitive: true,
       calendarColor: "#e74c3c",
@@ -565,7 +603,8 @@ const BANANA_CONFIG: CropConfig = {
       day: 1,
       taskType: "Planting",
       title: "Plant Banana Suckers",
-      description: "Plant banana suckers at proper spacing. Ensure good drainage.",
+      description:
+        "Plant banana suckers at proper spacing. Ensure good drainage.",
       growthStage: "Seedling",
       isWeatherSensitive: true,
       calendarColor: "#16a34a",
@@ -574,7 +613,8 @@ const BANANA_CONFIG: CropConfig = {
       day: 30,
       taskType: "Fertilizing",
       title: "Apply First Fertilizer",
-      description: "Apply fertilizer to support early growth and root development.",
+      description:
+        "Apply fertilizer to support early growth and root development.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -601,7 +641,8 @@ const BANANA_CONFIG: CropConfig = {
       day: 120,
       taskType: "Fertilizing",
       title: "Apply Flowering Fertilizer",
-      description: "Apply fertilizer before flowering to support bunch development.",
+      description:
+        "Apply fertilizer before flowering to support bunch development.",
       growthStage: "Flowering",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -610,7 +651,8 @@ const BANANA_CONFIG: CropConfig = {
       day: 180,
       taskType: "Monitoring",
       title: "Monitor Bunch Development",
-      description: "Check banana bunch development. Protect from pests and wind.",
+      description:
+        "Check banana bunch development. Protect from pests and wind.",
       growthStage: "Fruiting",
       isWeatherSensitive: false,
       calendarColor: "#3b82f6",
@@ -649,7 +691,8 @@ const COCONUT_CONFIG: CropConfig = {
       day: 1,
       taskType: "Monitoring",
       title: "Annual Tree Inspection",
-      description: "Inspect coconut trees for health, pests, and structural issues.",
+      description:
+        "Inspect coconut trees for health, pests, and structural issues.",
       growthStage: "Vegetative",
       isWeatherSensitive: false,
       calendarColor: "#3b82f6",
@@ -658,7 +701,8 @@ const COCONUT_CONFIG: CropConfig = {
       day: 30,
       taskType: "Fertilizing",
       title: "Apply Fertilizer",
-      description: "Apply fertilizer to support tree growth and nut production.",
+      description:
+        "Apply fertilizer to support tree growth and nut production.",
       growthStage: "Vegetative",
       isWeatherSensitive: true,
       calendarColor: "#f59e0b",
@@ -740,7 +784,11 @@ function calculateDayInCycle(plantingDate: Date, currentDate: Date): number {
 /**
  * Generate a unique task ID
  */
-function generateTaskId(cropType: string, dayInCycle: number, taskType: TaskType): string {
+function generateTaskId(
+  cropType: string,
+  dayInCycle: number,
+  taskType: TaskType,
+): string {
   return `task-${cropType}-${dayInCycle}-${taskType.toLowerCase()}-${Date.now()}`;
 }
 
@@ -765,7 +813,7 @@ function calculateTaskDate(plantingDate: Date, dayInCycle: number): Date {
 
 /**
  * Generate daily tasks for a crop
- * 
+ *
  * @param cropType - Crop ID (e.g., "rice", "corn")
  * @param plantingDate - Date when crop was planted
  * @param currentDate - Current date (defaults to today)
@@ -776,10 +824,10 @@ export function generateDailyTasks(
   cropType: string,
   plantingDate: Date,
   currentDate: Date = new Date(),
-  lookAheadDays: number = 30
+  lookAheadDays: number = 365,
 ): DailyTask[] {
   const cropConfig = CROP_REGISTRY[cropType];
-  
+
   if (!cropConfig) {
     console.warn(`No crop configuration found for: ${cropType}`);
     return [];
@@ -833,14 +881,19 @@ export function generateDailyTasks(
  * Generate tasks for multiple crops
  */
 export function generateTasksForCrops(
-  crops: Array<{ id: string; plantingDate: Date }>,
+  crops: { id: string; plantingDate: Date }[],
   currentDate: Date = new Date(),
-  lookAheadDays: number = 30
+  lookAheadDays: number = 30,
 ): DailyTask[] {
   const allTasks: DailyTask[] = [];
 
   for (const crop of crops) {
-    const tasks = generateDailyTasks(crop.id, crop.plantingDate, currentDate, lookAheadDays);
+    const tasks = generateDailyTasks(
+      crop.id,
+      crop.plantingDate,
+      currentDate,
+      lookAheadDays,
+    );
     allTasks.push(...tasks);
   }
 

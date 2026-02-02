@@ -1,3 +1,7 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Location from "expo-location";
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -6,14 +10,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Location from "expo-location";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
@@ -38,11 +37,23 @@ const MUNICIPALITIES = [
 const BARANGAYS: Record<string, string[]> = {
   Abucay: ["Calaylayan", "Gabon", "Laon", "Mabatang", "Wawa"],
   Bagac: ["Atilano L. Ricardo", "Banawang", "Pag-asa", "Parang", "Ibaba"],
-  "Balanga City": ["Bagumbayan", "Cabog-Cabog", "Camacho", "Cupang North", "Poblacion"],
+  "Balanga City": [
+    "Bagumbayan",
+    "Cabog-Cabog",
+    "Camacho",
+    "Cupang North",
+    "Poblacion",
+  ],
   Dinalupihan: ["Bangal", "Bayan-bayanan", "Colo", "Pagalanggang", "Poblacion"],
   Hermosa: ["A. Rivera", "Almacen", "Bacong", "Cataning", "Mabiga"],
   Limay: ["Alangan", "Duale", "Kitang 2 & Luac", "Poblacion", "Wawa"],
-  Mariveles: ["Alas-asin", "Baseco Country", "Batangas II", "Poblacion", "Sisiman"],
+  Mariveles: [
+    "Alas-asin",
+    "Baseco Country",
+    "Batangas II",
+    "Poblacion",
+    "Sisiman",
+  ],
   Morong: ["Binaritan", "Mabayo", "Nagbalayong", "Poblacion", "Sabang"],
   Orani: ["Apollo", "Bagong Paraiso", "Calero", "Dona", "Wawa"],
   Orion: ["Arellano", "Bagumbayan", "Bilolo", "Lati", "Wakas"],
@@ -67,7 +78,9 @@ export default function SetLocationScreen() {
 
   const loadSavedLocation = async () => {
     try {
-      const locationJson = await AsyncStorage.getItem("@plantanim:user_location");
+      const locationJson = await AsyncStorage.getItem(
+        "@plantanim:user_location",
+      );
       if (locationJson) {
         const location = JSON.parse(locationJson);
         setSelectedMunicipality(location.municipality);
@@ -96,7 +109,10 @@ export default function SetLocationScreen() {
       const lat2 = toRad(loc.latitude);
       const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+        Math.sin(dLon / 2) *
+          Math.sin(dLon / 2) *
+          Math.cos(lat1) *
+          Math.cos(lat2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const distance = earthRadiusKm * c;
       if (distance < bestDistance) {
@@ -112,7 +128,10 @@ export default function SetLocationScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        Alert.alert(t("location.permission.title"), t("location.permission.message"));
+        Alert.alert(
+          t("location.permission.title"),
+          t("location.permission.message"),
+        );
         return;
       }
 
@@ -133,7 +152,10 @@ export default function SetLocationScreen() {
       setSelectedBarangay(firstBarangay);
     } catch (error) {
       console.error("Auto-detect error:", error);
-      Alert.alert(t("location.auto.detect.failed"), t("location.auto.detect.failed"));
+      Alert.alert(
+        t("location.auto.detect.failed"),
+        t("location.auto.detect.failed"),
+      );
     }
   };
 
@@ -146,16 +168,18 @@ export default function SetLocationScreen() {
           JSON.stringify({
             municipality: selectedMunicipality,
             barangay: selectedBarangay,
-          })
+          }),
         );
       }
     } catch (error) {
       console.error("Error saving location:", error);
     }
-    
+
     // Check if we came from settings (check if setup was already complete)
-    const setupComplete = await AsyncStorage.getItem("@plantanim:setup_complete");
-    
+    const setupComplete = await AsyncStorage.getItem(
+      "@plantanim:setup_complete",
+    );
+
     if (setupComplete === "true") {
       // User came from settings, go back to settings
       router.back();
@@ -173,10 +197,7 @@ export default function SetLocationScreen() {
       >
         {/* Header */}
         <View style={styles.header}>
-          <Pressable
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
+          <Pressable style={styles.backButton} onPress={() => router.back()}>
             <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </Pressable>
           <Text style={styles.screenTitle}>{t("location.title")}</Text>
@@ -201,12 +222,18 @@ export default function SetLocationScreen() {
           <Pressable style={styles.autoDetectCard} onPress={handleAutoDetect}>
             <MaterialIcons name="my-location" size={24} color="#137fec" />
             <View style={styles.autoDetectTextContainer}>
-              <Text style={styles.autoDetectTitle}>{t("location.auto.detect")}</Text>
+              <Text style={styles.autoDetectTitle}>
+                {t("location.auto.detect")}
+              </Text>
               <Text style={styles.autoDetectSubtitle}>
                 Use current GPS position
               </Text>
             </View>
-            <MaterialIcons name="chevron-right" size={24} color={colors.textSubtle} />
+            <MaterialIcons
+              name="chevron-right"
+              size={24}
+              color={colors.textSubtle}
+            />
           </Pressable>
 
           {/* Divider */}
@@ -298,7 +325,9 @@ export default function SetLocationScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("location.select.municipality")}</Text>
+              <Text style={styles.modalTitle}>
+                {t("location.select.municipality")}
+              </Text>
               <Pressable onPress={() => setShowMunicipalityModal(false)}>
                 <MaterialIcons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -335,7 +364,9 @@ export default function SetLocationScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("location.select.barangay")}</Text>
+              <Text style={styles.modalTitle}>
+                {t("location.select.barangay")}
+              </Text>
               <Pressable onPress={() => setShowBarangayModal(false)}>
                 <MaterialIcons name="close" size={24} color={colors.text} />
               </Pressable>
@@ -562,5 +593,26 @@ const createStyles = (theme: Theme) =>
     modalOptionText: {
       fontSize: 16,
       color: theme.text,
+    },
+    manualInputContainer: {
+      paddingHorizontal: 20,
+      paddingVertical: 16,
+      borderTopWidth: 1,
+      borderTopColor: theme.icon + "22",
+    },
+    manualInputLabel: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.text,
+      marginBottom: 8,
+    },
+    manualInput: {
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      padding: 16,
+      fontSize: 16,
+      color: theme.text,
+      borderWidth: 1,
+      borderColor: theme.icon + "22",
     },
   });

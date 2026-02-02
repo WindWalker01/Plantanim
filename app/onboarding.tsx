@@ -1,7 +1,15 @@
 import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Theme } from "@/constants/theme";
@@ -28,10 +36,17 @@ export default function OnboardingScreen() {
   const { colors } = useAppTheme();
   const router = useRouter();
   const [currentPage, setCurrentPage] = useState(0);
+  const [fullName, setFullName] = useState("");
 
   const styles = useMemo(() => createStyles(colors), [colors]);
 
   const pages: OnboardingPage[] = [
+    {
+      title: "Welcome to Plantanim",
+      description:
+        "Let's get to know you first. Please enter your name so we can personalize your farming experience.",
+      graphic: "onboarding_simple_easy",
+    },
     {
       title: "Stay Ahead of the Storm",
       description:
@@ -52,7 +67,28 @@ export default function OnboardingScreen() {
     },
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    if (currentPage === 0) {
+      // Save name before proceeding
+      if (fullName.trim()) {
+        try {
+          await AsyncStorage.setItem(
+            "@plantanim:user_profile",
+            JSON.stringify({
+              fullName: fullName.trim(),
+              location: {
+                municipality: "Pampanga",
+                barangay: "Central Luzon",
+              },
+              createdAt: new Date().toISOString(),
+            }),
+          );
+        } catch (error) {
+          console.error("Error saving profile:", error);
+        }
+      }
+    }
+
     if (currentPage < pages.length - 1) {
       setCurrentPage(currentPage + 1);
     } else {
@@ -86,6 +122,28 @@ export default function OnboardingScreen() {
           <Text style={styles.description}>
             {pages[currentPage].description}
           </Text>
+
+          {/* Name Input for First Page */}
+          {currentPage === 0 && (
+            <View style={styles.nameInputContainer}>
+              <Text style={styles.nameInputLabel}>Your Name</Text>
+              <View style={styles.nameInputField}>
+                <MaterialIcons
+                  name="person"
+                  size={20}
+                  color={colors.textSubtle}
+                />
+                <TextInput
+                  style={[styles.nameTextInput, { color: colors.text }]}
+                  value={fullName}
+                  onChangeText={setFullName}
+                  placeholder="Enter your full name"
+                  placeholderTextColor={colors.textSubtle}
+                  maxLength={50}
+                />
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Pagination */}
@@ -199,5 +257,34 @@ const createStyles = (theme: Theme) =>
       color: "#ffffff",
       fontSize: 18,
       fontWeight: "700",
+    },
+    nameInputContainer: {
+      width: "100%",
+      marginTop: 24,
+    },
+    nameInputLabel: {
+      fontSize: 14,
+      fontWeight: "700",
+      color: theme.text,
+      marginBottom: 8,
+      textAlign: "left",
+      width: "100%",
+    },
+    nameInputField: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.surface,
+      borderRadius: 12,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      borderWidth: 1,
+      borderColor: theme.icon + "22",
+      width: "100%",
+    },
+    nameTextInput: {
+      flex: 1,
+      fontSize: 16,
+      marginLeft: 12,
+      padding: 0,
     },
   });

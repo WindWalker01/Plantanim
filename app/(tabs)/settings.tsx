@@ -1,3 +1,6 @@
+import { MaterialIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
@@ -8,9 +11,6 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
-import { MaterialIcons } from "@expo/vector-icons";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Theme } from "@/constants/theme";
 import { useAppTheme } from "@/hooks/use-app-theme";
@@ -27,6 +27,9 @@ export default function SettingsScreen() {
   const [userLocation, setUserLocation] = useState<{
     municipality: string;
     barangay: string;
+  } | null>(null);
+  const [userProfile, setUserProfile] = useState<{
+    fullName: string;
   } | null>(null);
 
   const styles = useMemo(() => createStyles(colors, isDark), [colors, isDark]);
@@ -48,6 +51,13 @@ export default function SettingsScreen() {
       if (locationJson) {
         setUserLocation(JSON.parse(locationJson));
       }
+
+      // Load user profile
+      const profileJson = await AsyncStorage.getItem("@plantanim:user_profile");
+      if (profileJson) {
+        const profile = JSON.parse(profileJson);
+        setUserProfile({ fullName: profile.fullName || "Juan Dela Cruz" });
+      }
     } catch (error) {
       console.error("Error loading settings:", error);
     }
@@ -68,6 +78,10 @@ export default function SettingsScreen() {
 
   const handleManageCrops = () => {
     router.push("/personalization");
+  };
+
+  const handleNameChange = () => {
+    router.push("/change-name");
   };
 
   const handleLanguage = () => {
@@ -103,26 +117,37 @@ export default function SettingsScreen() {
               <MaterialIcons name="check" size={16} color="#fff" />
             </View>
           </View>
-          <Text style={styles.userName}>Juan Dela Cruz</Text>
+          <Pressable
+            style={styles.userNameContainer}
+            onPress={() => router.push("/change-name")}
+          >
+            <Text style={styles.userName}>
+              {userProfile?.fullName || "Juan Dela Cruz"}
+            </Text>
+            <MaterialIcons name="edit" size={16} color={colors.textSubtle} />
+          </Pressable>
           <View style={styles.locationRow}>
             <MaterialIcons name="place" size={16} color={colors.textSubtle} />
             <Text style={styles.locationText}>{displayLocation}</Text>
           </View>
-          <Text style={styles.farmerId}>{t("settings.farmer.id")} 2024-PLNT-001</Text>
+          <Text style={styles.farmerId}>
+            {t("settings.farmer.id")} 2024-PLNT-001
+          </Text>
         </View>
 
         {/* Farming Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t("settings.farming.settings")}</Text>
+          <Text style={styles.sectionTitle}>
+            {t("settings.farming.settings")}
+          </Text>
           <View style={styles.sectionCard}>
-            <Pressable
-              style={styles.settingRow}
-              onPress={handleUpdateLocation}
-            >
+            <Pressable style={styles.settingRow} onPress={handleUpdateLocation}>
               <View style={styles.iconContainer}>
                 <MaterialIcons name="map" size={20} color={colors.text} />
               </View>
-              <Text style={styles.settingText}>{t("settings.update.location")}</Text>
+              <Text style={styles.settingText}>
+                {t("settings.update.location")}
+              </Text>
               <MaterialIcons
                 name="chevron-right"
                 size={24}
@@ -132,14 +157,13 @@ export default function SettingsScreen() {
 
             <View style={styles.divider} />
 
-            <Pressable
-              style={styles.settingRow}
-              onPress={handleManageCrops}
-            >
+            <Pressable style={styles.settingRow} onPress={handleManageCrops}>
               <View style={styles.iconContainer}>
                 <MaterialIcons name="eco" size={20} color={colors.text} />
               </View>
-              <Text style={styles.settingText}>{t("settings.manage.crops")}</Text>
+              <Text style={styles.settingText}>
+                {t("settings.manage.crops")}
+              </Text>
               <MaterialIcons
                 name="chevron-right"
                 size={24}
@@ -154,7 +178,11 @@ export default function SettingsScreen() {
               onPress={() => router.push("/demo")}
             >
               <View style={styles.iconContainer}>
-                <MaterialIcons name="play-circle-filled" size={20} color={colors.text} />
+                <MaterialIcons
+                  name="play-circle-filled"
+                  size={20}
+                  color={colors.text}
+                />
               </View>
               <Text style={styles.settingText}>App Demo</Text>
               <MaterialIcons
@@ -173,13 +201,19 @@ export default function SettingsScreen() {
             <View style={styles.settingRow}>
               <View style={styles.iconContainer}>
                 <View style={styles.bellContainer}>
-                  <MaterialIcons name="notifications" size={20} color={colors.text} />
+                  <MaterialIcons
+                    name="notifications"
+                    size={20}
+                    color={colors.text}
+                  />
                   {notificationsEnabled && (
                     <View style={styles.notificationBadge} />
                   )}
                 </View>
               </View>
-              <Text style={styles.settingText}>{t("settings.notifications")}</Text>
+              <Text style={styles.settingText}>
+                {t("settings.notifications")}
+              </Text>
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleNotificationsToggle}
@@ -273,6 +307,12 @@ const createStyles = (theme: Theme, isDark: boolean) =>
       fontSize: 24,
       fontWeight: "800",
       color: theme.text,
+      marginBottom: 8,
+    },
+    userNameContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
       marginBottom: 8,
     },
     locationRow: {

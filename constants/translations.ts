@@ -121,6 +121,15 @@ export interface Translations {
   "common.skip": string;
   "common.next": string;
   "common.finish": string;
+
+  // Change Name Screen
+  "change.name.title": string;
+  "change.name.update": string;
+  "change.name.instruction": string;
+  "change.name.full.name": string;
+  "change.name.character.count": string;
+  "change.name.info": string;
+  "change.name.save": string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -213,6 +222,17 @@ export const translations: Record<Language, Translations> = {
       "Select all that apply to get personalized weather alerts for your crops.",
     "personalization.selected": "Selected",
     "personalization.finish": "Finish",
+
+    // Change Name Screen
+    "change.name.title": "Change Name",
+    "change.name.update": "Update Your Name",
+    "change.name.instruction":
+      "Enter your full name as you'd like it to appear in your profile.",
+    "change.name.full.name": "Full Name",
+    "change.name.character.count": "{{count}}/{{max}} characters",
+    "change.name.info":
+      "This name will be displayed in your profile and used for personalised farming advice.",
+    "change.name.save": "Save Changes",
     "planting.title": "Set Planting Dates",
     "planting.info":
       "Set planting dates for your crops to generate daily farming tasks automatically.",
